@@ -29,7 +29,7 @@ runs:
     - name: Get changed files
       id: changed-files
       if: ${{ inputs.changed-files == 'true' }}
-      uses: tj-actions/changed-files@v44
+      uses: tj-actions/changed-files@v45
       with:
         files: '**.py'
     - run: |

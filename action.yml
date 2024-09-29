@@ -1,23 +1,21 @@
-name: "Ruff GH Action"
-description: "A GH Action of Ruff, the extremely fast Python linter."
-author: "The Ruff Community"
+name: "ruff-action"
+description: "A GitHub Action to run Ruff, an extremely fast Python linter and code formatter."
+author: "astral-sh"
 inputs:
   args:
-    description:
-      "Arguments passed to Ruff. Use `ruff --help` to see available options.
-      Default: 'check'"
+    description: "Arguments passed to Ruff. Use `ruff --help` to see available options. Defaults to `check`."
     required: false
     default: "check"
   src:
-    description: "Source to run ruff. Default: '.'"
+    description: "Source to run Ruff. Defaults to the current directory."
     required: false
     default: "."
   version:
-    description: 'The version of ruff to use, e.g. "0.0.259"'
+    description: 'The version of Ruff to use, e.g., `0.6.0` Defaults to the latest version.'
     required: false
     default: ""
   changed-files:
-    description: 'Whether to only run ruff on changed files. Default: false'
+    description: 'Whether to only run Ruff on changed files. Defaults to `false`.'
     required: false
     default: "false"
 branding:

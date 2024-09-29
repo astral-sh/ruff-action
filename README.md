@@ -3,8 +3,9 @@
 A [GitHub Action](https://github.com/features/actions) to run
 [Ruff](https://github.com/astral-sh/ruff).
 
-> [!TIP] This Action is a fork of
-> [chartboost/ruff-action](https://github.com/ChartBoost/ruff-action), which is
+> [!TIP]
+>
+> This Action is a fork of [chartboost/ruff-action](https://github.com/ChartBoost/ruff-action), which is
 > no longer maintained. The Action is largely unchanged, but will be updated in
 > a future major release.
 

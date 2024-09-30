@@ -41,6 +41,7 @@ runs:
         INPUT_ARGS: ${{ inputs.args }}
         INPUT_SRC: ${{ inputs.src }}
         INPUT_VERSION: ${{ inputs.version }}
+        IS_CHANGED_FILES_ENABLED: ${{ inputs.changed-files }}
         CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         pythonioencoding: utf-8
       shell: bash

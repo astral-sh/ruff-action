@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: chartboost/ruff-action@v1
+      - uses: astral-sh/ruff-action@v1
 ```
 
 ## Advanced Usage
@@ -56,7 +56,7 @@ for details
 ### Use a different ruff version
 
 ```yaml
-- uses: chartboost/ruff-action@v1
+- uses: astral-sh/ruff-action@v1
   with:
     version: 0.2.2
 ```
@@ -64,7 +64,7 @@ for details
 ### Specify a different source directory
 
 ```yaml
-- uses: chartboost/ruff-action@v1
+- uses: astral-sh/ruff-action@v1
   with:
     src: "./src"
 ```
@@ -72,7 +72,7 @@ for details
 ### Use `ruff format`
 
 ```yaml
-- uses: chartboost/ruff-action@v1
+- uses: astral-sh/ruff-action@v1
   with:
     args: "format --check"
 ```
@@ -80,7 +80,7 @@ for details
 ### Only run ruff on changed files
 
 ```yaml
-- uses: chartboost/ruff-action@v1
+- uses: astral-sh/ruff-action@v1
   with:
     changed-files: "true"
 ```

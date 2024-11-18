@@ -1,18 +1,89 @@
+[tool.poetry]
+name = "action"
+version = "0.2"
+description = "A GitHub Action for Ruff Linter"
+authors = ["Ruff Community"]
+license = "Apache-2.0 license"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+ruff = "^0.7.4"
+pre-commit = "^4.0.1"
+
 [tool.ruff]
 target-version = "py311"
+respect-gitignore = true
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
 
 [tool.ruff.lint]
-extend-select = ["B", "UP"]
-fixable = ["I", "RUF100"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+select = [
+    # Find the whole list at:
+    # https://docs.astral.sh/ruff/rules/
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "D",   # pydocstyle (docstring style checker)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "C90", # mccabe (complexity checker)
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    # ignorable rules
+    "COM812", # Missing trailing comma
+    "D203",   # One blank line required before class docstring (found 0)
+    "D212",   # Multi-line docstring summary should start at the first line
+    "D213",   # Multi-line docstring summary should start at the second line
+    "E501",   # Line too long (X > 79 characters)
+    "ISC001", # Import aliases should not be a single letter
+    "UP036",  # Use capitalized version of 'True', 'False', and 'None'
+]
+fixable = [
+    # autofixable rules
+    "I",      # isort rules
+    "RUF100", # Unused noqa directive
+]
 unfixable = []
 
-[tool.pyright]
-typeCheckingMode = "lazy"
-defineConstant = { DEBUG = true }
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = [
+    "D104", # Missing docstring in public package
+    "E402", # Module level import not at top of file
+    "F401", # Module imported but unused
+    "F403", # 'from module import *' used; unable to detect undefined names
+    "F811", # Redefinition of unused name from line N
+]
 
-reportMissingImports = false
-reportMissingTypeStubs = false
-reportInvalidStringEscapeSequence = false
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
 
-pythonVersion = "3.11"
-pythonPlatform = "Linux"
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

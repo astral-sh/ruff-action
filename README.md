@@ -27,7 +27,7 @@ Create a workflow `.yml` file in your repository's `.github/workflows` directory
 
 - `args`: Arguments passed to Ruff. Use `ruff --help` to see available options. Default: `check`.
 - `src`: Source to run Ruff. Default: `'.'`.
-- `version`: The version of Ruff to use, e.g. "0.5.0". Default: `""`.
+- `version`: The version of Ruff to use, e.g. `"0.5.0"`. Default: `""`.
 - `use_pyproject`: Whether to use pyproject.toml to configure Ruff. Default: `false`.
 - `changed-files`: Whether to only run Ruff on changed files. Default: `false`.
 - `config_path`: Path to a configuration file (`pyproject.toml` or `ruff.toml`). Default: `/`.

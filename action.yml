@@ -1,47 +1,76 @@
-name: "ruff-action"
-description: "A GitHub Action to run Ruff, an extremely fast Python linter and code formatter."
-author: "astral-sh"
+name: "Ruff GitHub Action"
+description: "A GitHub Action of Ruff, an extremely fast Python linter."
+author: "The Ruff Community"
+
 inputs:
   args:
-    description: "Arguments passed to Ruff. Use `ruff --help` to see available options. Defaults to `check`."
+    description:
+      "Arguments passed to Ruff. Use `ruff --help` to see available options.
+      Default: 'check'"
     required: false
     default: "check"
+
   src:
-    description: "Source to run Ruff. Defaults to the current directory."
+    description: "Source to run ruff. Default: '.'"
     required: false
     default: "."
+
   version:
-    description: 'The version of Ruff to use, e.g., `0.6.0` Defaults to the latest version.'
+    description: 'The version of ruff to use, e.g. "0.5.0"'
     required: false
     default: ""
+
   changed-files:
-    description: 'Whether to only run Ruff on changed files. Defaults to `false`.'
+    description: "Whether to only run ruff on changed files. Default: false"
     required: false
     default: "false"
+
+  config_path:
+    description: "Path to a configuration file (pyproject.toml or ruff.toml). Default: 'root/'"
+    required: false
+    default: "/"
+
+  isolated:
+    description: "Ignore all configuration files. Default: false"
+    required: false
+    default: "false"
+
+  use_pyproject:
+    description: "Whether to use pyproject.toml to configure ruff. Default: false"
+    required: false
+    default: "false"
+
 branding:
   color: "black"
   icon: "code"
+
 runs:
   using: composite
   steps:
     - name: Get changed files
       id: changed-files
       if: ${{ inputs.changed-files == 'true' }}
-      uses: tj-actions/changed-files@v45
+      uses: tj-actions/changed-files@v44
       with:
-        files: '**.py'
+        files: "**.py"
     - run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python $GITHUB_ACTION_PATH/action/main.py
-        else
-          python3 $GITHUB_ACTION_PATH/action/main.py
-        fi
+        sudo apt-get install python-is-python3
+      shell: bash
+    - run: |
+        set +e
+        out=$(python $GITHUB_ACTION_PATH/action/main.py)
+        exit_code=$?
+        echo "${out}"
+        exit ${exit_code}
       env:
         RUFF_OUTPUT_FORMAT: github
         INPUT_ARGS: ${{ inputs.args }}
         INPUT_SRC: ${{ inputs.src }}
         INPUT_VERSION: ${{ inputs.version }}
-        IS_CHANGED_FILES_ENABLED: ${{ inputs.changed-files }}
+        CHANGED_FILES_ENABLED: ${{ inputs.changed-files }}
         CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        CONFIG_PATH: ${{ inputs.config_path }}
+        USE_PYPROJECT: ${{ inputs.use_pyproject }}
+        USE_ISOLATED: ${{ inputs.isolated }}
         pythonioencoding: utf-8
       shell: bash

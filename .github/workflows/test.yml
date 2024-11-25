@@ -1,0 +1,142 @@
+name: "test"
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Actionlint
+        uses: eifinger/actionlint-action@bdc2a242a53ae50e609e29f8eeb0d05d792edc09  # v1.7.0
+        continue-on-error: true  # Until https://github.com/rhysd/actionlint/pull/485 is released
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: |
+          npm install
+      - run: |
+          npm run all
+      - name: Make sure no changes from linters are detected
+        run: |
+          git diff --exit-code
+  test-default-version:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-14, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use default version
+        uses: ./
+        with:
+          src: __tests__/fixtures/python-project
+  test-specific-version:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruff-version: ["0.7.4", "0.7", "0.7.x", ">=0.7.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use version ${{ matrix.ruff-version }}
+        uses: ./
+        with:
+          version: ${{ matrix.ruff-version }}
+          src: __tests__/fixtures/python-project
+  test-semver-range:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use version 0.7
+        id: ruff-action
+        uses: ./
+        with:
+          version: "0.7"
+          src: __tests__/fixtures/python-project
+      - name: Correct version gets installed
+        run: |
+          if [ "$RUFF_VERSION" != "0.7.4" ]; then
+            exit 1
+          fi
+        env:
+          RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
+  test-checksum:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        checksum:
+          ["0de731c669b9ece77e799ac3f4a160c30849752714d9775c94cc4cfaf326860c"]
+        exclude:
+          - os: macos-latest
+            checksum: "0de731c669b9ece77e799ac3f4a160c30849752714d9775c94cc4cfaf326860c"
+        include:
+          - os: macos-latest
+            checksum: "af9583bff12afbca5d5670334e0187dd60c4d91bc71317d1b2dde70cb1200ba9"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checksum matches expected
+        uses: ./
+        with:
+          version: "0.7.4"
+          checksum: ${{ matrix.checksum }}
+          src: __tests__/fixtures/python-project
+  test-with-explicit-token:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use default version
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          src: __tests__/fixtures/python-project
+  test-args:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use args
+        uses: ./
+        with:
+          args: format --check
+          src: __tests__/fixtures/python-project
+  test-failure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use args
+        id: should-fail
+        continue-on-error: true
+        uses: ./
+        with:
+          args: format --check
+          src: __tests__/fixtures/malformed-python-project
+      - name: Check if the action failed
+        run: |
+          if [ ${{ steps.should-fail.outcome }} == "success" ]; then
+            exit 1
+          fi
+  test-multiple-src:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use args
+        uses: ./
+        with:
+          args: format --check
+          src: >-
+            __tests__/fixtures/python-project/src/python_project/__init__.py
+            __tests__/fixtures/python-project/src/python_project/hello_world.py

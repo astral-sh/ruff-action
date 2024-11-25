@@ -9,39 +9,26 @@ inputs:
   src:
     description: "Source to run Ruff. Defaults to the current directory."
     required: false
-    default: "."
+    default: ${{ github.workspace }}
   version:
-    description: 'The version of Ruff to use, e.g., `0.6.0` Defaults to the latest version.'
+    description: "The version of Ruff to use, e.g., `0.6.0` Defaults to the latest version."
     required: false
-    default: ""
-  changed-files:
-    description: 'Whether to only run Ruff on changed files. Defaults to `false`.'
+    default: "latest"
+  checksum:
+    description: "The checksum of the ruff version to install"
     required: false
-    default: "false"
-branding:
-  color: "black"
-  icon: "code"
+  github-token:
+    description:
+      "Used to increase the rate limit when retrieving versions and downloading
+      ruff."
+    required: false
+    default: ${{ github.token }}
+outputs:
+  ruff-version:
+    description: "The installed ruff version. Useful when using latest."
 runs:
-  using: composite
-  steps:
-    - name: Get changed files
-      id: changed-files
-      if: ${{ inputs.changed-files == 'true' }}
-      uses: tj-actions/changed-files@v45
-      with:
-        files: '**.py'
-    - run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python $GITHUB_ACTION_PATH/action/main.py
-        else
-          python3 $GITHUB_ACTION_PATH/action/main.py
-        fi
-      env:
-        RUFF_OUTPUT_FORMAT: github
-        INPUT_ARGS: ${{ inputs.args }}
-        INPUT_SRC: ${{ inputs.src }}
-        INPUT_VERSION: ${{ inputs.version }}
-        IS_CHANGED_FILES_ENABLED: ${{ inputs.changed-files }}
-        CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
-        pythonioencoding: utf-8
-      shell: bash
+  using: "node20"
+  main: "dist/ruff-action/index.js"
+branding:
+  icon: "code"
+  color: "black"

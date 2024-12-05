@@ -42,7 +42,7 @@ fix).
 ### Specify a different source directory
 
 ```yaml
-- uses: astral-sh/ruff-action@v1
+- uses: astral-sh/ruff-action@v2
   with:
     src: "./src"
 ```
@@ -50,7 +50,7 @@ fix).
 ### Specify multiple files
 
 ```yaml
-- uses: astral-sh/ruff-action@v1
+- uses: astral-sh/ruff-action@v2
   with:
     src: >-
       path/to/file1.py
@@ -62,7 +62,7 @@ fix).
 This action adds ruff to the PATH, so you can use it in subsequent steps.
 
 ```yaml
-- uses: astral-sh/ruff-action@v1
+- uses: astral-sh/ruff-action@v2
 - run: ruff check --fix
 - run: ruff format
 ```
@@ -70,7 +70,7 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
 ### Use `ruff format`
 
 ```yaml
-- uses: astral-sh/ruff-action@v1
+- uses: astral-sh/ruff-action@v2
   with:
     args: "format --check"
 ```

@@ -34613,6 +34613,7 @@ function run() {
             }
             const setupResult = yield setupRuff(platform, arch, inputs_1.version, inputs_1.checkSum, inputs_1.githubToken);
             addRuffToPath(setupResult.ruffDir);
+            setOutputFormat();
             core.setOutput("ruff-version", setupResult.version);
             core.info(`Successfully installed ruff version ${setupResult.version}`);
             yield runRuff(path.join(setupResult.ruffDir, "ruff"), inputs_1.args.split(" "), inputs_1.src.split(" "));
@@ -34644,6 +34645,10 @@ function setupRuff(platform, arch, versionInput, checkSum, githubToken) {
 function addRuffToPath(cachedPath) {
     core.addPath(cachedPath);
     core.info(`Added ${cachedPath} to the path`);
+}
+function setOutputFormat() {
+    core.exportVariable("RUFF_OUTPUT_FORMAT", "github");
+    core.info("Set RUFF_OUTPUT_FORMAT to github");
 }
 function runRuff(ruffExecutablePath, args, src) {
     return __awaiter(this, void 0, void 0, function* () {

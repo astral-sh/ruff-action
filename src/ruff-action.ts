@@ -36,6 +36,7 @@ async function run(): Promise<void> {
 
     addRuffToPath(setupResult.ruffDir);
     setOutputFormat();
+    addMatchers();
     core.setOutput("ruff-version", setupResult.version);
     core.info(`Successfully installed ruff version ${setupResult.version}`);
 
@@ -90,6 +91,17 @@ function addRuffToPath(cachedPath: string): void {
 function setOutputFormat() {
   core.exportVariable("RUFF_OUTPUT_FORMAT", "github");
   core.info("Set RUFF_OUTPUT_FORMAT to github");
+}
+
+function addMatchers(): void {
+  const matchersPath = path.join(
+    __dirname,
+    `..${path.sep}..`,
+    ".github",
+    "matchers",
+  );
+  core.info(`##[add-matcher]${path.join(matchersPath, "check.json")}`);
+  core.info(`##[add-matcher]${path.join(matchersPath, "format.json")}`);
 }
 
 async function runRuff(

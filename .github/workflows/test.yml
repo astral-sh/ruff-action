@@ -114,8 +114,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use args
-        id: should-fail
+      - name: Format should fail
+        id: format-should-fail
         continue-on-error: true
         uses: ./
         with:
@@ -123,7 +123,18 @@ jobs:
           src: __tests__/fixtures/malformed-python-project
       - name: Check if the action failed
         run: |
-          if [ ${{ steps.should-fail.outcome }} == "success" ]; then
+          if [ ${{ steps.format-should-fail.outcome }} == "success" ]; then
+            exit 1
+          fi
+      - name: Check should fail
+        id: check-should-fail
+        continue-on-error: true
+        uses: ./
+        with:
+          src: __tests__/fixtures/malformed-python-project
+      - name: Check if the action failed
+        run: |
+          if [ ${{ steps.check-should-fail.outcome }} == "success" ]; then
             exit 1
           fi
   test-multiple-src:

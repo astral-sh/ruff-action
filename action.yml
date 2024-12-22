@@ -11,9 +11,12 @@ inputs:
     required: false
     default: ${{ github.workspace }}
   version:
-    description: "The version of Ruff to use, e.g., `0.6.0` Defaults to the latest version."
+    description: "The version of Ruff to use, e.g., `0.6.0` Defaults to the version in pyproject.toml or 'latest'."
     required: false
-    default: "latest"
+    default: ""
+  version-file:
+    description: "Path to a pyproject.toml or requirements.txt file to read the version from."
+    required: false
   checksum:
     description: "The checksum of the ruff version to install"
     required: false

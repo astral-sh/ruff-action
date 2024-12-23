@@ -13,7 +13,16 @@ import {
   getPlatform,
   type Platform,
 } from "./utils/platforms";
-import { args, checkSum, githubToken, src, version } from "./utils/inputs";
+import {
+  args,
+  checkSum,
+  githubToken,
+  src,
+  version,
+  versionFile as versionFileInput,
+} from "./utils/inputs";
+import { getRuffVersionFromPyproject } from "./utils/pyproject";
+import * as fs from "node:fs";
 
 async function run(): Promise<void> {
   const platform = getPlatform();
@@ -26,13 +35,7 @@ async function run(): Promise<void> {
     if (arch === undefined) {
       throw new Error(`Unsupported architecture: ${process.arch}`);
     }
-    const setupResult = await setupRuff(
-      platform,
-      arch,
-      version,
-      checkSum,
-      githubToken,
-    );
+    const setupResult = await setupRuff(platform, arch, checkSum, githubToken);
 
     addRuffToPath(setupResult.ruffDir);
     setOutputFormat();
@@ -55,11 +58,10 @@ async function run(): Promise<void> {
 async function setupRuff(
   platform: Platform,
   arch: Architecture,
-  versionInput: string,
   checkSum: string | undefined,
   githubToken: string,
 ): Promise<{ ruffDir: string; version: string }> {
-  const resolvedVersion = await resolveVersion(versionInput, githubToken);
+  const resolvedVersion = await determineVersion();
   const toolCacheResult = tryGetFromToolCache(arch, resolvedVersion);
   if (toolCacheResult.installedPath) {
     core.info(`Found ruffDir in tool-cache for ${toolCacheResult.version}`);
@@ -81,6 +83,30 @@ async function setupRuff(
     ruffDir: downloadVersionResult.cachedToolDir,
     version: downloadVersionResult.version,
   };
+}
+
+async function determineVersion(): Promise<string> {
+  if (versionFileInput !== "" && version !== "") {
+    throw Error("It is not allowed to specify both version and version-file");
+  }
+  if (version !== "") {
+    return await resolveVersion(version, githubToken);
+  }
+  if (versionFileInput !== "") {
+    const versionFromPyproject = getRuffVersionFromPyproject(versionFileInput);
+    if (versionFromPyproject === undefined) {
+      core.warning(
+        "Could not parse version from supplied pyproject.toml. Using latest version.",
+      );
+      return await resolveVersion("latest", githubToken);
+    }
+  }
+  const pyProjectPath = path.join(src, "pyproject.toml");
+  if (!fs.existsSync(pyProjectPath)) {
+    return await resolveVersion("latest", githubToken);
+  }
+  const versionFromPyproject = getRuffVersionFromPyproject(pyProjectPath);
+  return await resolveVersion(versionFromPyproject || "latest", githubToken);
 }
 
 function addRuffToPath(cachedPath: string): void {

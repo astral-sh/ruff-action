@@ -25,7 +25,8 @@
     "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.0",
-    "@actions/tool-cache": "^2.0.1"
+    "@actions/tool-cache": "^2.0.1",
+    "toml": "^3.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

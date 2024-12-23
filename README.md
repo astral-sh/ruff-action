@@ -19,19 +19,21 @@ fix).
     - [Install the latest version (default)](#install-the-latest-version-default)
     - [Install a specific version](#install-a-specific-version)
     - [Install a version by supplying a semver range](#install-a-version-by-supplying-a-semver-range)
+    - [Install a version from a specified version file](#install-a-version-from-a-specified-version-file)
   - [Validate checksum](#validate-checksum)
   - [GitHub authentication token](#github-authentication-token)
 - [Outputs](#outputs)
 
 ## Usage
 
-| Input          | Description                                                                                 | Default            |
-|----------------|---------------------------------------------------------------------------------------------|--------------------|
-| `version`      | The version of Ruff to install. See [Install specific versions](#install-specific-versions) | `latest`           |
-| `args`         | The arguments to pass to the `ruff` command. See [Configuring Ruff]                         | `check`            |
-| `src`          | The directory or single files to run `ruff` on.                                             | [github.workspace] |
-| `checksum`     | The sha256 checksum of the downloaded executable.                                           | None               |
-| `github-token` | The GitHub token to use for authentication.                                                 | `GITHUB_TOKEN`     |
+| Input          | Description                                                                                                                                | Default            |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
+| `version`      | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | `latest`           |
+| `version-file` | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
+| `args`         | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
+| `src`          | The directory or single files to run `ruff` on.                                                                                            | [github.workspace] |
+| `checksum`     | The sha256 checksum of the downloaded executable.                                                                                          | None               |
+| `github-token` | The GitHub token to use for authentication.                                                                                                | `GITHUB_TOKEN`     |
 
 ### Basic
 
@@ -77,7 +79,11 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
 
 ### Install specific versions
 
-#### Install the latest version (default)
+By default this action looks for a pyproject.toml file in the root of the repository to determine
+the ruff version to install. If no pyproject.toml file is found, or no ruff version is defined in
+either `dependencies` or `dependency-groups.dev` the latest version is installed.
+
+#### Install the latest version
 
 ```yaml
 - name: Install the latest version of ruff
@@ -86,13 +92,7 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
     version: "latest"
 ```
 
-> [!TIP]
->
-> Using `latest` requires to download the ruff executable on every run, which incurs a cost
-> (especially on self-hosted runners). As a best practice, consider pinning the version to a
-> specific release.
-
-### Install a specific version
+#### Install a specific version
 
 ```yaml
 - name: Install a specific version of ruff
@@ -101,7 +101,7 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
     version: "0.4.4"
 ```
 
-### Install a version by supplying a semver range
+#### Install a version by supplying a semver range
 
 You can specify a [semver range](https://github.com/npm/node-semver?tab=readme-ov-file#ranges)
 to install the latest version that satisfies the range.
@@ -118,6 +118,18 @@ to install the latest version that satisfies the range.
   uses: astral-sh/ruff-action@v2
   with:
     version: "0.4.x"
+```
+
+#### Install a version from a specified version file
+
+You can specify a file to read the version from.
+Currently `pyproject.toml` is supported.
+
+```yaml
+- name: Install a version from a specified version file
+  uses: astral-sh/ruff-action@v2
+  with:
+    version-file: "my-path/to/pyproject.toml"
 ```
 
 ### Validate checksum

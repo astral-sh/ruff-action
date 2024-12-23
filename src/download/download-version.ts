@@ -29,13 +29,12 @@ export async function downloadVersion(
   checkSum: string | undefined,
   githubToken: string,
 ): Promise<{ version: string; cachedToolDir: string }> {
-  const resolvedVersion = await resolveVersion(version, githubToken);
   const artifact = `ruff-${arch}-${platform}`;
   let extension = ".tar.gz";
   if (platform === "pc-windows-msvc") {
     extension = ".zip";
   }
-  const downloadUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${resolvedVersion}/${artifact}${extension}`;
+  const downloadUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${version}/${artifact}${extension}`;
   core.info(`Downloading ruff from "${downloadUrl}" ...`);
 
   const downloadPath = await tc.downloadTool(
@@ -43,13 +42,7 @@ export async function downloadVersion(
     undefined,
     githubToken,
   );
-  await validateChecksum(
-    checkSum,
-    downloadPath,
-    arch,
-    platform,
-    resolvedVersion,
-  );
+  await validateChecksum(checkSum, downloadPath, arch, platform, version);
 
   let ruffDir: string;
   if (platform === "pc-windows-msvc") {
@@ -64,10 +57,10 @@ export async function downloadVersion(
   const cachedToolDir = await tc.cacheDir(
     ruffDir,
     TOOL_CACHE_NAME,
-    resolvedVersion,
+    version,
     arch,
   );
-  return { version: resolvedVersion, cachedToolDir };
+  return { version: version, cachedToolDir };
 }
 
 export async function resolveVersion(

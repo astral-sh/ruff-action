@@ -38,13 +38,13 @@ fix).
 ### Basic
 
 ```yaml
-- uses: astral-sh/ruff-action@v2
+- uses: astral-sh/ruff-action@v3
 ```
 
 ### Specify a different source directory
 
 ```yaml
-- uses: astral-sh/ruff-action@v2
+- uses: astral-sh/ruff-action@v3
   with:
     src: "./src"
 ```
@@ -52,7 +52,7 @@ fix).
 ### Specify multiple files
 
 ```yaml
-- uses: astral-sh/ruff-action@v2
+- uses: astral-sh/ruff-action@v3
   with:
     src: >-
       path/to/file1.py
@@ -64,7 +64,7 @@ fix).
 This action adds ruff to the PATH, so you can use it in subsequent steps.
 
 ```yaml
-- uses: astral-sh/ruff-action@v2
+- uses: astral-sh/ruff-action@v3
 - run: ruff check --fix
 - run: ruff format
 ```
@@ -72,7 +72,7 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
 ### Use `ruff format`
 
 ```yaml
-- uses: astral-sh/ruff-action@v2
+- uses: astral-sh/ruff-action@v3
   with:
     args: "format --check"
 ```
@@ -87,7 +87,7 @@ either `dependencies` or `dependency-groups.dev` the latest version is installed
 
 ```yaml
 - name: Install the latest version of ruff
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     version: "latest"
 ```
@@ -96,7 +96,7 @@ either `dependencies` or `dependency-groups.dev` the latest version is installed
 
 ```yaml
 - name: Install a specific version of ruff
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     version: "0.4.4"
 ```
@@ -108,14 +108,14 @@ to install the latest version that satisfies the range.
 
 ```yaml
 - name: Install a semver range of ruff
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     version: ">=0.4.0"
 ```
 
 ```yaml
 - name: Pinning a minor version of ruff
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     version: "0.4.x"
 ```
@@ -127,7 +127,7 @@ Currently `pyproject.toml` is supported.
 
 ```yaml
 - name: Install a version from a specified version file
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     version-file: "my-path/to/pyproject.toml"
 ```
@@ -140,7 +140,7 @@ are automatically verified by this action. The sha256 hashes can be found on the
 
 ```yaml
 - name: Install a specific version and validate the checksum
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     version: "0.7.4"
     checksum: "0de731c669b9ece77e799ac3f4a160c30849752714d9775c94cc4cfaf326860c"
@@ -158,7 +158,7 @@ are not sufficient, you can provide a custom GitHub token with the necessary per
 
 ```yaml
 - name: Install the latest version of ruff with a custom GitHub token
-  uses: astral-sh/ruff-action@v2
+  uses: astral-sh/ruff-action@v3
   with:
     github-token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
 ```

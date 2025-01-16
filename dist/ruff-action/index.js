@@ -34923,8 +34923,20 @@ const fs = __importStar(__nccwpck_require__(3024));
 const core = __importStar(__nccwpck_require__(7484));
 const toml = __importStar(__nccwpck_require__(7106));
 function getRuffVersionFromPyproject(filePath) {
+    if (!fs.existsSync(filePath)) {
+        core.warning(`Could not find file: ${filePath}`);
+        return undefined;
+    }
     const pyprojectContent = fs.readFileSync(filePath, "utf-8");
-    const pyproject = toml.parse(pyprojectContent);
+    let pyproject;
+    try {
+        pyproject = toml.parse(pyprojectContent);
+    }
+    catch (err) {
+        const message = err.message;
+        core.warning(`Error while parsing ${filePath}: ${message}`);
+        return undefined;
+    }
     const dependencies = pyproject?.project?.dependencies || [];
     const devDependencies = pyproject?.["dependency-groups"]?.dev || [];
     const ruffVersionDefinition = dependencies.find((dep) => dep.startsWith("ruff")) ||

@@ -34644,10 +34644,11 @@ run();
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.TOOL_CACHE_NAME = exports.OWNER = exports.REPO = void 0;
+exports.GITHUB_COM_API = exports.TOOL_CACHE_NAME = exports.OWNER = exports.REPO = void 0;
 exports.REPO = "ruff";
 exports.OWNER = "astral-sh";
 exports.TOOL_CACHE_NAME = "ruff";
+exports.GITHUB_COM_API = "https://api.github.com";
 
 
 /***/ }),

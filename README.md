@@ -16,7 +16,7 @@ fix).
   - [Use to install ruff](#use-to-install-ruff)
   - [Use `ruff format`](#use-ruff-format)
   - [Install specific versions](#install-specific-versions)
-    - [Install the latest version (default)](#install-the-latest-version-default)
+    - [Install the latest version](#install-the-latest-version)
     - [Install a specific version](#install-a-specific-version)
     - [Install a version by supplying a semver range](#install-a-version-by-supplying-a-semver-range)
     - [Install a version from a specified version file](#install-a-version-from-a-specified-version-file)

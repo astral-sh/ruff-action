@@ -184,3 +184,12 @@ jobs:
           src: >-
             __tests__/fixtures/python-project/src/python_project/__init__.py
             __tests__/fixtures/python-project/src/python_project/hello_world.py
+  test-exit-zero:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Debug this
+        uses: ./
+        with:
+          args: "--exit-zero"
+          src: __tests__/fixtures/python-project

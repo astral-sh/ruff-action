@@ -81,7 +81,8 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
 
 By default this action looks for a pyproject.toml file in the root of the repository to determine
 the ruff version to install. If no pyproject.toml file is found, or no ruff version is defined in
-either `dependencies` or `dependency-groups.dev` the latest version is installed.
+`project.dependencies`, `project.optional-dependencies`, or `dependency-groups`,
+the latest version is installed.
 
 #### Install the latest version
 

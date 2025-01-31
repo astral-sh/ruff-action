@@ -1,0 +1,15 @@
+[project]
+name = "pyproject-optional-dependencies-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+lint = [
+    "ruff==0.8.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

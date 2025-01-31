@@ -12,8 +12,11 @@ export function getRuffVersionFromPyproject(
   const pyprojectContent = fs.readFileSync(filePath, "utf-8");
   let pyproject:
     | {
-        project?: { dependencies?: string[] };
-        "dependency-groups"?: { dev?: string[] };
+        project?: {
+          dependencies?: string[];
+          "optional-dependencies"?: Map<string, string[]>;
+        };
+        "dependency-groups"?: Map<string, Array<string | object>>;
       }
     | undefined;
   try {
@@ -25,11 +28,22 @@ export function getRuffVersionFromPyproject(
   }
 
   const dependencies: string[] = pyproject?.project?.dependencies || [];
-  const devDependencies: string[] = pyproject?.["dependency-groups"]?.dev || [];
+  const optionalDependencies: string[] = Object.values(
+    pyproject?.project?.["optional-dependencies"] || {},
+  ).flat();
+  const devDependencies: string[] = Object.values(
+    pyproject?.["dependency-groups"] || {},
+  )
+    .flat()
+    .filter((item: string | object) => typeof item === "string");
+  const allDependencies: string[] = dependencies.concat(
+    optionalDependencies,
+    devDependencies,
+  );
 
-  const ruffVersionDefinition =
-    dependencies.find((dep: string) => dep.startsWith("ruff")) ||
-    devDependencies.find((dep: string) => dep.startsWith("ruff"));
+  const ruffVersionDefinition = allDependencies.find((dep: string) =>
+    dep.startsWith("ruff"),
+  );
 
   if (ruffVersionDefinition) {
     const ruffVersion = ruffVersionDefinition

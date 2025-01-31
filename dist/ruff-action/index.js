@@ -30745,9 +30745,12 @@ function getRuffVersionFromPyproject(filePath) {
         return undefined;
     }
     const dependencies = pyproject?.project?.dependencies || [];
-    const devDependencies = pyproject?.["dependency-groups"]?.dev || [];
-    const ruffVersionDefinition = dependencies.find((dep) => dep.startsWith("ruff")) ||
-        devDependencies.find((dep) => dep.startsWith("ruff"));
+    const optionalDependencies = Object.values(pyproject?.project?.["optional-dependencies"] || {}).flat();
+    const devDependencies = Object.values(pyproject?.["dependency-groups"] || {})
+        .flat()
+        .filter((item) => typeof item === "string");
+    const allDependencies = dependencies.concat(optionalDependencies, devDependencies);
+    const ruffVersionDefinition = allDependencies.find((dep) => dep.startsWith("ruff"));
     if (ruffVersionDefinition) {
         const ruffVersion = ruffVersionDefinition
             .match(/^ruff([^A-Z0-9._-]+.*)$/)?.[1]

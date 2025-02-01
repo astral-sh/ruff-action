@@ -19,27 +19,31 @@ export function getRuffVersionFromPyproject(
         "dependency-groups"?: Map<string, Array<string | object>>;
       }
     | undefined;
-  try {
-    pyproject = toml.parse(pyprojectContent);
-  } catch (err) {
-    const message = (err as Error).message;
-    core.warning(`Error while parsing ${filePath}: ${message}`);
-    return undefined;
+  let allDependencies: string[];
+  if (filePath.endsWith(".txt")) {
+    allDependencies = pyprojectContent.split("\n");
+  } else {
+    try {
+      pyproject = toml.parse(pyprojectContent);
+      const dependencies: string[] = pyproject?.project?.dependencies || [];
+      const optionalDependencies: string[] = Object.values(
+        pyproject?.project?.["optional-dependencies"] || {},
+      ).flat();
+      const devDependencies: string[] = Object.values(
+        pyproject?.["dependency-groups"] || {},
+      )
+        .flat()
+        .filter((item: string | object) => typeof item === "string");
+      allDependencies = dependencies.concat(
+        optionalDependencies,
+        devDependencies,
+      );
+    } catch (err) {
+      const message = (err as Error).message;
+      core.warning(`Error while parsing ${filePath}: ${message}`);
+      return undefined;
+    }
   }
-
-  const dependencies: string[] = pyproject?.project?.dependencies || [];
-  const optionalDependencies: string[] = Object.values(
-    pyproject?.project?.["optional-dependencies"] || {},
-  ).flat();
-  const devDependencies: string[] = Object.values(
-    pyproject?.["dependency-groups"] || {},
-  )
-    .flat()
-    .filter((item: string | object) => typeof item === "string");
-  const allDependencies: string[] = dependencies.concat(
-    optionalDependencies,
-    devDependencies,
-  );
 
   const ruffVersionDefinition = allDependencies.find((dep: string) =>
     dep.startsWith("ruff"),

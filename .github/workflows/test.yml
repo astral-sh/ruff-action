@@ -135,6 +135,23 @@ jobs:
           fi
         env:
           RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
+  test-default-version-from-requirements:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use default version from requirements.txt
+        id: ruff-action
+        uses: ./
+        with:
+          src: __tests__/fixtures/requirements
+          version-file: __tests__/fixtures/requirements/requirements.txt
+      - name: Correct version gets installed
+        run: |
+          if [ "$RUFF_VERSION" != "0.8.3" ]; then
+            exit 1
+          fi
+        env:
+          RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
   test-semver-range:
     runs-on: ubuntu-latest
     steps:

@@ -133,6 +133,15 @@ Currently `pyproject.toml` is supported.
     version-file: "my-path/to/pyproject.toml"
 ```
 
+And `requirements.txt` is supported.
+
+```yaml
+- name: Install a version from a specified version file
+  uses: astral-sh/ruff-action@v3
+  with:
+    version-file: "my-path/to/requirements.txt"
+```
+
 ### Validate checksum
 
 You can specify a checksum to validate the downloaded executable. Checksums up to the default version

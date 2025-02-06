@@ -21,7 +21,7 @@ import {
   version,
   versionFile as versionFileInput,
 } from "./utils/inputs";
-import { getRuffVersionFromPyproject } from "./utils/pyproject";
+import { getRuffVersionFromRequirementsFile } from "./utils/pyproject";
 import * as fs from "node:fs";
 
 async function run(): Promise<void> {
@@ -93,7 +93,8 @@ async function determineVersion(): Promise<string> {
     return await resolveVersion(version, githubToken);
   }
   if (versionFileInput !== "") {
-    const versionFromPyproject = getRuffVersionFromPyproject(versionFileInput);
+    const versionFromPyproject =
+      getRuffVersionFromRequirementsFile(versionFileInput);
     if (versionFromPyproject === undefined) {
       core.warning(
         `Could not parse version from ${versionFileInput}. Using latest version.`,
@@ -106,7 +107,8 @@ async function determineVersion(): Promise<string> {
     core.info(`Could not find ${pyProjectPath}. Using latest version.`);
     return await resolveVersion("latest", githubToken);
   }
-  const versionFromPyproject = getRuffVersionFromPyproject(pyProjectPath);
+  const versionFromPyproject =
+    getRuffVersionFromRequirementsFile(pyProjectPath);
   if (versionFromPyproject === undefined) {
     core.warning(
       `Could not parse version from ${pyProjectPath}. Using latest version.`,

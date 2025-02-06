@@ -30554,7 +30554,7 @@ async function determineVersion() {
         return await (0, download_version_1.resolveVersion)(inputs_1.version, inputs_1.githubToken);
     }
     if (inputs_1.versionFile !== "") {
-        const versionFromPyproject = (0, pyproject_1.getRuffVersionFromPyproject)(inputs_1.versionFile);
+        const versionFromPyproject = (0, pyproject_1.getRuffVersionFromRequirementsFile)(inputs_1.versionFile);
         if (versionFromPyproject === undefined) {
             core.warning(`Could not parse version from ${inputs_1.versionFile}. Using latest version.`);
         }
@@ -30565,7 +30565,7 @@ async function determineVersion() {
         core.info(`Could not find ${pyProjectPath}. Using latest version.`);
         return await (0, download_version_1.resolveVersion)("latest", inputs_1.githubToken);
     }
-    const versionFromPyproject = (0, pyproject_1.getRuffVersionFromPyproject)(pyProjectPath);
+    const versionFromPyproject = (0, pyproject_1.getRuffVersionFromRequirementsFile)(pyProjectPath);
     if (versionFromPyproject === undefined) {
         core.warning(`Could not parse version from ${pyProjectPath}. Using latest version.`);
     }
@@ -30731,11 +30731,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getRuffVersionFromPyproject = getRuffVersionFromPyproject;
+exports.getRuffVersionFromRequirementsFile = getRuffVersionFromRequirementsFile;
 const fs = __importStar(__nccwpck_require__(3024));
 const core = __importStar(__nccwpck_require__(7484));
 const toml = __importStar(__nccwpck_require__(7106));
-function parseRequirements(allDependencies) {
+function getRuffVersionFromAllDependencies(allDependencies) {
     const ruffVersionDefinition = allDependencies.find((dep) => dep.startsWith("ruff"));
     if (ruffVersionDefinition) {
         const ruffVersion = ruffVersionDefinition
@@ -30756,16 +30756,16 @@ function parsePyproject(pyprojectContent) {
     const devDependencies = Object.values(pyproject?.["dependency-groups"] || {})
         .flat()
         .filter((item) => typeof item === "string");
-    return parseRequirements(dependencies.concat(optionalDependencies, devDependencies));
+    return getRuffVersionFromAllDependencies(dependencies.concat(optionalDependencies, devDependencies));
 }
-function getRuffVersionFromPyproject(filePath) {
+function getRuffVersionFromRequirementsFile(filePath) {
     if (!fs.existsSync(filePath)) {
         core.warning(`Could not find file: ${filePath}`);
         return undefined;
     }
     const pyprojectContent = fs.readFileSync(filePath, "utf-8");
     if (filePath.endsWith(".txt")) {
-        return parseRequirements(pyprojectContent.split("\n"));
+        return getRuffVersionFromAllDependencies(pyprojectContent.split("\n"));
     }
     try {
         return parsePyproject(pyprojectContent);

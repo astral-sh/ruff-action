@@ -2,7 +2,9 @@ import * as fs from "node:fs";
 import * as core from "@actions/core";
 import * as toml from "smol-toml";
 
-function parseRequirements(allDependencies: string[]): string | undefined {
+function getRuffVersionFromAllDependencies(
+  allDependencies: string[],
+): string | undefined {
   const ruffVersionDefinition = allDependencies.find((dep: string) =>
     dep.startsWith("ruff"),
   );
@@ -38,12 +40,12 @@ function parsePyproject(pyprojectContent: string): string | undefined {
   )
     .flat()
     .filter((item: string | object) => typeof item === "string");
-  return parseRequirements(
+  return getRuffVersionFromAllDependencies(
     dependencies.concat(optionalDependencies, devDependencies),
   );
 }
 
-export function getRuffVersionFromPyproject(
+export function getRuffVersionFromRequirementsFile(
   filePath: string,
 ): string | undefined {
   if (!fs.existsSync(filePath)) {
@@ -52,7 +54,7 @@ export function getRuffVersionFromPyproject(
   }
   const pyprojectContent = fs.readFileSync(filePath, "utf-8");
   if (filePath.endsWith(".txt")) {
-    return parseRequirements(pyprojectContent.split("\n"));
+    return getRuffVersionFromAllDependencies(pyprojectContent.split("\n"));
   }
   try {
     return parsePyproject(pyprojectContent);

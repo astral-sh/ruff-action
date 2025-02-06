@@ -51,6 +51,23 @@ jobs:
         with:
           version: ${{ matrix.ruff-version }}
           src: __tests__/fixtures/python-project
+  test-version-from-version-file-pyproject:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use version from pyproject.toml
+        id: ruff-action
+        uses: ./
+        with:
+          src: __tests__/fixtures/python-project
+          version-file: __tests__/fixtures/pyproject.toml
+      - name: Correct version gets installed
+        run: |
+          if [ "$RUFF_VERSION" != "0.9.3" ]; then
+            exit 1
+          fi
+        env:
+          RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
   test-default-version-from-pyproject:
     runs-on: ubuntu-latest
     steps:

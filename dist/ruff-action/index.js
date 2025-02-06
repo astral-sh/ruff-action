@@ -30387,6 +30387,7 @@ async function downloadVersion(platform, arch, version, checkSum, githubToken) {
     return { version: version, cachedToolDir };
 }
 async function resolveVersion(versionInput, githubToken) {
+    core.debug(`Resolving ${versionInput}...`);
     const version = versionInput === "latest"
         ? await getLatestVersion(githubToken)
         : versionInput;
@@ -30399,6 +30400,7 @@ async function resolveVersion(versionInput, githubToken) {
     if (resolvedVersion === "") {
         throw new Error(`No version found for ${version}`);
     }
+    core.debug(`Resolved version: ${resolvedVersion}`);
     return resolvedVersion;
 }
 async function getAvailableVersions(githubToken) {
@@ -30554,15 +30556,19 @@ async function determineVersion() {
     if (inputs_1.versionFile !== "") {
         const versionFromPyproject = (0, pyproject_1.getRuffVersionFromPyproject)(inputs_1.versionFile);
         if (versionFromPyproject === undefined) {
-            core.warning("Could not parse version from supplied pyproject.toml. Using latest version.");
-            return await (0, download_version_1.resolveVersion)("latest", inputs_1.githubToken);
+            core.warning(`Could not parse version from ${inputs_1.versionFile}. Using latest version.`);
         }
+        return await (0, download_version_1.resolveVersion)(versionFromPyproject || "latest", inputs_1.githubToken);
     }
     const pyProjectPath = path.join(inputs_1.src, "pyproject.toml");
     if (!fs.existsSync(pyProjectPath)) {
+        core.info(`Could not find ${pyProjectPath}. Using latest version.`);
         return await (0, download_version_1.resolveVersion)("latest", inputs_1.githubToken);
     }
     const versionFromPyproject = (0, pyproject_1.getRuffVersionFromPyproject)(pyProjectPath);
+    if (versionFromPyproject === undefined) {
+        core.warning(`Could not parse version from ${pyProjectPath}. Using latest version.`);
+    }
     return await (0, download_version_1.resolveVersion)(versionFromPyproject || "latest", inputs_1.githubToken);
 }
 function addRuffToPath(cachedPath) {

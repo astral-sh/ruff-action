@@ -71,6 +71,7 @@ export async function resolveVersion(
   versionInput: string,
   githubToken: string,
 ): Promise<string> {
+  core.debug(`Resolving ${versionInput}...`);
   const version =
     versionInput === "latest"
       ? await getLatestVersion(githubToken)
@@ -84,6 +85,7 @@ export async function resolveVersion(
   if (resolvedVersion === "") {
     throw new Error(`No version found for ${version}`);
   }
+  core.debug(`Resolved version: ${resolvedVersion}`);
   return resolvedVersion;
 }
 

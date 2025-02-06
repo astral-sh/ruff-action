@@ -96,16 +96,22 @@ async function determineVersion(): Promise<string> {
     const versionFromPyproject = getRuffVersionFromPyproject(versionFileInput);
     if (versionFromPyproject === undefined) {
       core.warning(
-        "Could not parse version from supplied pyproject.toml. Using latest version.",
+        `Could not parse version from ${versionFileInput}. Using latest version.`,
       );
-      return await resolveVersion("latest", githubToken);
     }
+    return await resolveVersion(versionFromPyproject || "latest", githubToken);
   }
   const pyProjectPath = path.join(src, "pyproject.toml");
   if (!fs.existsSync(pyProjectPath)) {
+    core.info(`Could not find ${pyProjectPath}. Using latest version.`);
     return await resolveVersion("latest", githubToken);
   }
   const versionFromPyproject = getRuffVersionFromPyproject(pyProjectPath);
+  if (versionFromPyproject === undefined) {
+    core.warning(
+      `Could not parse version from ${pyProjectPath}. Using latest version.`,
+    );
+  }
   return await resolveVersion(versionFromPyproject || "latest", githubToken);
 }
 

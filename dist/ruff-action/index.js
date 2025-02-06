@@ -30735,27 +30735,7 @@ exports.getRuffVersionFromPyproject = getRuffVersionFromPyproject;
 const fs = __importStar(__nccwpck_require__(3024));
 const core = __importStar(__nccwpck_require__(7484));
 const toml = __importStar(__nccwpck_require__(7106));
-function getRuffVersionFromPyproject(filePath) {
-    if (!fs.existsSync(filePath)) {
-        core.warning(`Could not find file: ${filePath}`);
-        return undefined;
-    }
-    const pyprojectContent = fs.readFileSync(filePath, "utf-8");
-    let pyproject;
-    try {
-        pyproject = toml.parse(pyprojectContent);
-    }
-    catch (err) {
-        const message = err.message;
-        core.warning(`Error while parsing ${filePath}: ${message}`);
-        return undefined;
-    }
-    const dependencies = pyproject?.project?.dependencies || [];
-    const optionalDependencies = Object.values(pyproject?.project?.["optional-dependencies"] || {}).flat();
-    const devDependencies = Object.values(pyproject?.["dependency-groups"] || {})
-        .flat()
-        .filter((item) => typeof item === "string");
-    const allDependencies = dependencies.concat(optionalDependencies, devDependencies);
+function parseRequirements(allDependencies) {
     const ruffVersionDefinition = allDependencies.find((dep) => dep.startsWith("ruff"));
     if (ruffVersionDefinition) {
         const ruffVersion = ruffVersionDefinition
@@ -30768,6 +30748,33 @@ function getRuffVersionFromPyproject(filePath) {
         return ruffVersion;
     }
     return undefined;
+}
+function parsePyproject(pyprojectContent) {
+    const pyproject = toml.parse(pyprojectContent);
+    const dependencies = pyproject?.project?.dependencies || [];
+    const optionalDependencies = Object.values(pyproject?.project?.["optional-dependencies"] || {}).flat();
+    const devDependencies = Object.values(pyproject?.["dependency-groups"] || {})
+        .flat()
+        .filter((item) => typeof item === "string");
+    return parseRequirements(dependencies.concat(optionalDependencies, devDependencies));
+}
+function getRuffVersionFromPyproject(filePath) {
+    if (!fs.existsSync(filePath)) {
+        core.warning(`Could not find file: ${filePath}`);
+        return undefined;
+    }
+    const pyprojectContent = fs.readFileSync(filePath, "utf-8");
+    if (filePath.endsWith(".txt")) {
+        return parseRequirements(pyprojectContent.split("\n"));
+    }
+    try {
+        return parsePyproject(pyprojectContent);
+    }
+    catch (err) {
+        const message = err.message;
+        core.warning(`Error while parsing ${filePath}: ${message}`);
+        return undefined;
+    }
 }
 
 

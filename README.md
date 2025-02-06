@@ -124,13 +124,13 @@ to install the latest version that satisfies the range.
 #### Install a version from a specified version file
 
 You can specify a file to read the version from.
-Currently `pyproject.toml` is supported.
+Currently `pyproject.toml` and `requirements.txt` are supported.
 
 ```yaml
 - name: Install a version from a specified version file
   uses: astral-sh/ruff-action@v3
   with:
-    version-file: "my-path/to/pyproject.toml"
+    version-file: "my-path/to/pyproject.toml-or-requirements.txt"
 ```
 
 ### Validate checksum

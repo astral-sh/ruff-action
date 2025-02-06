@@ -143,7 +143,7 @@ jobs:
         id: ruff-action
         uses: ./
         with:
-          src: __tests__/fixtures/
+          src: __tests__/fixtures/python-project
           version-file: __tests__/fixtures/requirements.txt
       - name: Correct version gets installed
         run: |

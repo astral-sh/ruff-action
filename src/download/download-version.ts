@@ -32,13 +32,14 @@ export async function downloadVersion(
   version: string,
   checkSum: string | undefined,
   githubToken: string,
+  customDownloadUrl?: string,
 ): Promise<{ version: string; cachedToolDir: string }> {
   const artifact = `ruff-${arch}-${platform}`;
   let extension = ".tar.gz";
   if (platform === "pc-windows-msvc") {
     extension = ".zip";
   }
-  const downloadUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${version}/${artifact}${extension}`;
+  const downloadUrl = customDownloadUrl || `https://github.com/${OWNER}/${REPO}/releases/download/${version}/${artifact}${extension}`;
   core.info(`Downloading ruff from "${downloadUrl}" ...`);
 
   const downloadPath = await tc.downloadTool(

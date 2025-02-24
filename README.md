@@ -26,14 +26,15 @@ fix).
 
 ## Usage
 
-| Input          | Description                                                                                                                                | Default            |
-|----------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
-| `version`      | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | `latest`           |
-| `version-file` | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
-| `args`         | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
-| `src`          | The directory or single files to run `ruff` on.                                                                                            | [github.workspace] |
-| `checksum`     | The sha256 checksum of the downloaded executable.                                                                                          | None               |
-| `github-token` | The GitHub token to use for authentication.                                                                                                | `GITHUB_TOKEN`     |
+| Input                 | Description                                                                                                                                | Default                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `version`             | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | `latest`                                                                                 |
+| `version-file`        | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None                                                                                     |
+| `args`                | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`                                                                                  |
+| `src`                 | The directory or single files to run `ruff` on.                                                                                            | [github.workspace]                                                                       |
+| `checksum`            | The sha256 checksum of the downloaded executable.                                                                                          | None                                                                                     |
+| `github-token`        | The GitHub token to use for authentication.                                                                                                | `GITHUB_TOKEN`                                                                           |
+| `custom-download-url` | Custom download URL for ruff.                                                                                                              | https://github.com/${OWNER}/${REPO}/releases/download/${version}/${artifact}${extension} |
 
 ### Basic
 
@@ -167,9 +168,8 @@ are not sufficient, you can provide a custom GitHub token with the necessary per
 ## Outputs
 
 | Output         | Description                             |
-|----------------|-----------------------------------------|
+| -------------- | --------------------------------------- |
 | `ruff-version` | The version of Ruff that was installed. |
-
 
 <div align="center">
   <a target="_blank" href="https://astral.sh" style="background:none">

@@ -26,6 +26,10 @@ inputs:
       ruff."
     required: false
     default: ${{ github.token }}
+  custom-download-url:
+    description: "Custom URL to download the ruff version from"
+    required: false
+    default: "https://github.com/${OWNER}/${REPO}/releases/download/${version}/${artifact}${extension}"
 outputs:
   ruff-version:
     description: "The installed ruff version. Useful when using latest."

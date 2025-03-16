@@ -69,6 +69,17 @@ This action adds ruff to the PATH, so you can use it in subsequent steps.
 - run: ruff format
 ```
 
+By default, this action runs `ruff check` after installation.
+If you do not want to run any `ruff` command but only install it,
+you can use the `args` input to overwrite the default value (`check`):
+
+```yaml
+- name: Install ruff without running check or format
+  uses: astral-sh/ruff-action@v3
+  with:
+    args: "--version"
+```
+
 ### Use `ruff format`
 
 ```yaml

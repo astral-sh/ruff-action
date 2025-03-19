@@ -85,7 +85,7 @@ you can use the `args` input to overwrite the default value (`check`):
 ```yaml
 - uses: astral-sh/ruff-action@v3
   with:
-    args: "format --check"
+    args: "format --check --diff"
 ```
 
 ### Install specific versions

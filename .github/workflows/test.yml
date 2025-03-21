@@ -170,16 +170,12 @@ jobs:
         env:
           RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
   test-checksum:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.inputs.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        checksum:
-          ["0de731c669b9ece77e799ac3f4a160c30849752714d9775c94cc4cfaf326860c"]
-        exclude:
-          - os: macos-latest
+        inputs:
+          - os: ubuntu-latest
             checksum: "0de731c669b9ece77e799ac3f4a160c30849752714d9775c94cc4cfaf326860c"
-        include:
           - os: macos-latest
             checksum: "af9583bff12afbca5d5670334e0187dd60c4d91bc71317d1b2dde70cb1200ba9"
     steps:
@@ -188,7 +184,7 @@ jobs:
         uses: ./
         with:
           version: "0.7.4"
-          checksum: ${{ matrix.checksum }}
+          checksum: ${{ matrix.inputs.checksum }}
           src: __tests__/fixtures/python-project
   test-with-explicit-token:
     runs-on: ubuntu-latest

@@ -1,0 +1,14 @@
+[project]
+name = "pyproject-dependency-poetry-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.poetry.group.dev.dependencies]
+sphinx = "*"
+ruff = "0.8.3"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

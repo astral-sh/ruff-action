@@ -30938,7 +30938,7 @@ function parsePyproject(pyprojectContent) {
         return version;
     // Special handling for Poetry until it supports PEP 735
     // See: <https://github.com/python-poetry/poetry/issues/9751>
-    const poetryGroups = Object.values(pyproject?.tool?.poetry?.group ?? {});
+    const poetryGroups = Object.values(pyproject?.tool?.poetry?.group || {});
     return poetryGroups
         .flatMap((group) => Object.entries(group.dependencies))
         .map(([name, spec]) => {

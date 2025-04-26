@@ -23,22 +23,21 @@ function getRuffVersionFromAllDependencies(
   return undefined;
 }
 
+interface Pyproject {
+  project?: {
+    dependencies?: string[];
+    "optional-dependencies"?: Record<string, string[]>;
+  };
+  "dependency-groups"?: Record<string, Array<string | object>>;
+  tool?: {
+    poetry?: {
+      group?: Record<string, { dependencies: Record<string, string | object> }>;
+    };
+  };
+}
+
 function parsePyproject(pyprojectContent: string): string | undefined {
-  const pyproject: {
-    project?: {
-      dependencies?: string[];
-      "optional-dependencies"?: Record<string, string[]>;
-    };
-    "dependency-groups"?: Record<string, Array<string | object>>;
-    tool?: {
-      poetry?: {
-        group?: Record<
-          string,
-          { dependencies: Record<string, string | object> }
-        >;
-      };
-    };
-  } = toml.parse(pyprojectContent);
+  const pyproject: Pyproject = toml.parse(pyprojectContent);
   const dependencies: string[] = pyproject?.project?.dependencies || [];
   const optionalDependencies: string[] = Object.values(
     pyproject?.project?.["optional-dependencies"] || {},

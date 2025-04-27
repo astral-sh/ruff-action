@@ -276,6 +276,7 @@ jobs:
       - test-default-version-from-pyproject
       - test-default-version-from-pyproject-dev-group
       - test-default-version-from-pyproject-dependency-groups
+      - test-default-version-from-pyproject-poetry-groups
       - test-default-version-from-pyproject-optional-dependencies
       - test-default-version-from-requirements
       - test-semver-range

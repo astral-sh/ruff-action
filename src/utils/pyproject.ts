@@ -23,14 +23,21 @@ function getRuffVersionFromAllDependencies(
   return undefined;
 }
 
-function parsePyproject(pyprojectContent: string): string | undefined {
-  const pyproject: {
-    project?: {
-      dependencies?: string[];
-      "optional-dependencies"?: Map<string, string[]>;
+interface Pyproject {
+  project?: {
+    dependencies?: string[];
+    "optional-dependencies"?: Record<string, string[]>;
+  };
+  "dependency-groups"?: Record<string, Array<string | object>>;
+  tool?: {
+    poetry?: {
+      group?: Record<string, { dependencies: Record<string, string | object> }>;
     };
-    "dependency-groups"?: Map<string, Array<string | object>>;
-  } = toml.parse(pyprojectContent);
+  };
+}
+
+function parsePyproject(pyprojectContent: string): string | undefined {
+  const pyproject: Pyproject = toml.parse(pyprojectContent);
   const dependencies: string[] = pyproject?.project?.dependencies || [];
   const optionalDependencies: string[] = Object.values(
     pyproject?.project?.["optional-dependencies"] || {},
@@ -40,9 +47,26 @@ function parsePyproject(pyprojectContent: string): string | undefined {
   )
     .flat()
     .filter((item: string | object) => typeof item === "string");
-  return getRuffVersionFromAllDependencies(
-    dependencies.concat(optionalDependencies, devDependencies),
+  return (
+    getRuffVersionFromAllDependencies(
+      dependencies.concat(optionalDependencies, devDependencies),
+    ) || getRuffVersionFromPoetryGroups(pyproject)
   );
+}
+
+function getRuffVersionFromPoetryGroups(
+  pyproject: Pyproject,
+): string | undefined {
+  // Special handling for Poetry until it supports PEP 735
+  // See: <https://github.com/python-poetry/poetry/issues/9751>
+  const poetryGroups = Object.values(pyproject?.tool?.poetry?.group || {});
+  return poetryGroups
+    .flatMap((group) => Object.entries(group.dependencies))
+    .map(([name, spec]) => {
+      if (name === "ruff" && typeof spec === "string") return spec;
+      return undefined;
+    })
+    .find((version) => version !== undefined);
 }
 
 export function getRuffVersionFromRequirementsFile(

@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@types/node": "^22.13.10",
+    "@types/node": "^22.15.2",
     "@types/semver": "^7.5.8",
     "@vercel/ncc": "^0.38.3",
     "js-yaml": "^4.1.0",

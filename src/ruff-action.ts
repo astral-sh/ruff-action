@@ -23,6 +23,7 @@ import {
 } from "./utils/inputs";
 import { getRuffVersionFromRequirementsFile } from "./utils/pyproject";
 import * as fs from "node:fs";
+import * as semver from "semver";
 
 async function run(): Promise<void> {
   const platform = getPlatform();
@@ -62,6 +63,11 @@ async function setupRuff(
   githubToken: string,
 ): Promise<{ ruffDir: string; version: string }> {
   const resolvedVersion = await determineVersion();
+  if (semver.lt(resolvedVersion, "v0.0.247")) {
+    throw Error(
+      "This action does not support ruff versions older than 0.0.247",
+    );
+  }
   const toolCacheResult = tryGetFromToolCache(arch, resolvedVersion);
   if (toolCacheResult.installedPath) {
     core.info(`Found ruffDir in tool-cache for ${toolCacheResult.version}`);

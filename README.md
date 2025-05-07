@@ -95,6 +95,9 @@ the ruff version to install. If no pyproject.toml file is found, or no ruff vers
 `project.dependencies`, `project.optional-dependencies`, or `dependency-groups`,
 the latest version is installed.
 
+> [!NOTE]
+> This action does only support ruff versions v0.0.247 and above.
+
 #### Install the latest version
 
 ```yaml

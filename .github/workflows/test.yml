@@ -51,6 +51,22 @@ jobs:
         with:
           version: ${{ matrix.ruff-version }}
           src: __tests__/fixtures/python-project
+  test-unsupported-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Try install old version
+        id: install
+        continue-on-error: true
+        uses: ./
+        with:
+          version: v0.0.246
+          src: __tests__/fixtures/python-project
+      - name: Check if the action failed
+        run: |
+          if [ ${{ steps.install.outcome }} == "success" ]; then
+            exit 1
+          fi
   test-version-from-version-file-pyproject:
     runs-on: ubuntu-latest
     steps:
@@ -272,6 +288,7 @@ jobs:
       - lint
       - test-latest-version
       - test-specific-version
+      - test-unsupported-version
       - test-version-from-version-file-pyproject
       - test-default-version-from-pyproject
       - test-default-version-from-pyproject-dev-group

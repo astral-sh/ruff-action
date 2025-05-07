@@ -30718,6 +30718,7 @@ const platforms_1 = __nccwpck_require__(8361);
 const inputs_1 = __nccwpck_require__(9612);
 const pyproject_1 = __nccwpck_require__(3929);
 const fs = __importStar(__nccwpck_require__(3024));
+const semver = __importStar(__nccwpck_require__(9318));
 async function run() {
     const platform = (0, platforms_1.getPlatform)();
     const arch = (0, platforms_1.getArch)();
@@ -30743,6 +30744,9 @@ async function run() {
 }
 async function setupRuff(platform, arch, checkSum, githubToken) {
     const resolvedVersion = await determineVersion();
+    if (semver.lt(resolvedVersion, "v0.0.247")) {
+        throw Error("This action does not support ruff versions older than 0.0.247");
+    }
     const toolCacheResult = (0, download_version_1.tryGetFromToolCache)(arch, resolvedVersion);
     if (toolCacheResult.installedPath) {
         core.info(`Found ruffDir in tool-cache for ${toolCacheResult.version}`);

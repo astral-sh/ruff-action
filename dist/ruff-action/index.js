@@ -30556,6 +30556,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const tc = __importStar(__nccwpck_require__(3472));
 const path = __importStar(__nccwpck_require__(6760));
 const node_fs_1 = __nccwpck_require__(3024);
+const semver = __importStar(__nccwpck_require__(9318));
 const constants_1 = __nccwpck_require__(6156);
 const checksum_1 = __nccwpck_require__(5391);
 const core_1 = __nccwpck_require__(767);
@@ -30579,10 +30580,28 @@ async function downloadVersion(platform, arch, version, checkSum, githubToken) {
     if (platform === "pc-windows-msvc") {
         extension = ".zip";
     }
-    const downloadUrl = `https://github.com/${constants_1.OWNER}/${constants_1.REPO}/releases/download/${version}/${artifact}${extension}`;
-    core.info(`Downloading ruff from "${downloadUrl}" ...`);
+    const downloadUrl = constructDownloadUrl(version, platform, arch);
+    core.debug(`Downloading ruff from "${downloadUrl}" ...`);
     const downloadPath = await tc.downloadTool(downloadUrl, undefined, githubToken);
+    core.debug(`Downloaded ruff to "${downloadPath}"`);
     await (0, checksum_1.validateChecksum)(checkSum, downloadPath, arch, platform, version);
+    const extractedDir = await extractDownloadedArtifact(version, downloadPath, extension, platform, artifact);
+    const cachedToolDir = await tc.cacheDir(extractedDir, constants_1.TOOL_CACHE_NAME, version, arch);
+    return { version: version, cachedToolDir };
+}
+function constructDownloadUrl(version, platform, arch) {
+    const artifactVersionSuffix = semver.lte(version, "v0.4.10") && semver.gte(version, "v0.1.8")
+        ? `-${version}`
+        : "";
+    const artifact = `ruff${artifactVersionSuffix}-${arch}-${platform}`;
+    let extension = ".tar.gz";
+    if (platform === "pc-windows-msvc") {
+        extension = ".zip";
+    }
+    const versionPrefix = semver.lte(version, "v0.4.10") ? "v" : "";
+    return `https://github.com/${constants_1.OWNER}/${constants_1.REPO}/releases/download/${versionPrefix}${version}/${artifact}${extension}`;
+}
+async function extractDownloadedArtifact(version, downloadPath, extension, platform, artifact) {
     let ruffDir;
     if (platform === "pc-windows-msvc") {
         const fullPathWithExtension = `${downloadPath}${extension}`;
@@ -30591,11 +30610,15 @@ async function downloadVersion(platform, arch, version, checkSum, githubToken) {
         // On windows extracting the zip does not create an intermediate directory
     }
     else {
-        const extractedDir = await tc.extractTar(downloadPath);
-        ruffDir = path.join(extractedDir, artifact);
+        ruffDir = await tc.extractTar(downloadPath);
+        if (semver.gte(version, "v0.5.0")) {
+            // Since v0.5.0 an intermediate directory is created
+            ruffDir = path.join(ruffDir, artifact);
+        }
     }
-    const cachedToolDir = await tc.cacheDir(ruffDir, constants_1.TOOL_CACHE_NAME, version, arch);
-    return { version: version, cachedToolDir };
+    const files = await node_fs_1.promises.readdir(ruffDir);
+    core.debug(`Contents of ${ruffDir}: ${files.join(", ")}`);
+    return ruffDir;
 }
 async function resolveVersion(versionInput, githubToken) {
     core.debug(`Resolving ${versionInput}...`);

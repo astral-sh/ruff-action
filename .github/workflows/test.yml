@@ -40,10 +40,11 @@ jobs:
           src: __tests__/fixtures/python-project
           version: latest
   test-specific-version:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        ruff-version: ["0.7.4", "0.7", "0.7.x", ">=0.7.0"]
+        ruff-version: ["0.1.7", "0.1.8", "0.4.7", "0.4.10", "0.7", "0.7.x", ">=0.7.0"]
+        os: [ ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-14, windows-latest ]
     steps:
       - uses: actions/checkout@v4
       - name: Use version ${{ matrix.ruff-version }}
@@ -60,7 +61,7 @@ jobs:
         continue-on-error: true
         uses: ./
         with:
-          version: v0.0.246
+          version: 0.0.246
           src: __tests__/fixtures/python-project
       - name: Check if the action failed
         run: |

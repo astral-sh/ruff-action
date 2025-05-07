@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
 import * as path from "node:path";
 import { promises as fs } from "node:fs";
+import * as semver from "semver";
 import { OWNER, REPO, TOOL_CACHE_NAME } from "../utils/constants";
 import type { Architecture, Platform } from "../utils/platforms";
 import { validateChecksum } from "./checksum/checksum";
@@ -38,16 +39,59 @@ export async function downloadVersion(
   if (platform === "pc-windows-msvc") {
     extension = ".zip";
   }
-  const downloadUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${version}/${artifact}${extension}`;
-  core.info(`Downloading ruff from "${downloadUrl}" ...`);
+  const downloadUrl = constructDownloadUrl(version, platform, arch);
+  core.debug(`Downloading ruff from "${downloadUrl}" ...`);
 
   const downloadPath = await tc.downloadTool(
     downloadUrl,
     undefined,
     githubToken,
   );
+  core.debug(`Downloaded ruff to "${downloadPath}"`);
   await validateChecksum(checkSum, downloadPath, arch, platform, version);
 
+  const extractedDir = await extractDownloadedArtifact(
+    version,
+    downloadPath,
+    extension,
+    platform,
+    artifact,
+  );
+
+  const cachedToolDir = await tc.cacheDir(
+    extractedDir,
+    TOOL_CACHE_NAME,
+    version,
+    arch,
+  );
+  return { version: version, cachedToolDir };
+}
+
+function constructDownloadUrl(
+  version: string,
+  platform: Platform,
+  arch: Architecture,
+): string {
+  const artifactVersionSuffix =
+    semver.lte(version, "v0.4.10") && semver.gte(version, "v0.1.8")
+      ? `-${version}`
+      : "";
+  const artifact = `ruff${artifactVersionSuffix}-${arch}-${platform}`;
+  let extension = ".tar.gz";
+  if (platform === "pc-windows-msvc") {
+    extension = ".zip";
+  }
+  const versionPrefix = semver.lte(version, "v0.4.10") ? "v" : "";
+  return `https://github.com/${OWNER}/${REPO}/releases/download/${versionPrefix}${version}/${artifact}${extension}`;
+}
+
+async function extractDownloadedArtifact(
+  version: string,
+  downloadPath: string,
+  extension: string,
+  platform: Platform,
+  artifact: string,
+): Promise<string> {
   let ruffDir: string;
   if (platform === "pc-windows-msvc") {
     const fullPathWithExtension = `${downloadPath}${extension}`;
@@ -55,16 +99,15 @@ export async function downloadVersion(
     ruffDir = await tc.extractZip(fullPathWithExtension);
     // On windows extracting the zip does not create an intermediate directory
   } else {
-    const extractedDir = await tc.extractTar(downloadPath);
-    ruffDir = path.join(extractedDir, artifact);
+    ruffDir = await tc.extractTar(downloadPath);
+    if (semver.gte(version, "v0.5.0")) {
+      // Since v0.5.0 an intermediate directory is created
+      ruffDir = path.join(ruffDir, artifact);
+    }
   }
-  const cachedToolDir = await tc.cacheDir(
-    ruffDir,
-    TOOL_CACHE_NAME,
-    version,
-    arch,
-  );
-  return { version: version, cachedToolDir };
+  const files = await fs.readdir(ruffDir);
+  core.debug(`Contents of ${ruffDir}: ${files.join(", ")}`);
+  return ruffDir;
 }
 
 export async function resolveVersion(

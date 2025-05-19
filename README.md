@@ -4,8 +4,8 @@ A GitHub Action to run [ruff](https://github.com/astral-sh/ruff).
 
 This action is commonly used as a pass/fail test to ensure your repository stays
 clean, abiding the [rules](https://docs.astral.sh/ruff/rules/) specified in your
-configuration. Though it runs `ruff`, the action can do anything `ruff` can (ex,
-fix).
+configuration. Though it runs `ruff check` by default, the action can do 
+anything `ruff` can (ex, fix).
 
 ## Contents
 

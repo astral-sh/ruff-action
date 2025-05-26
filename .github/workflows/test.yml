@@ -24,6 +24,10 @@ jobs:
           npm install
       - run: |
           npm run all
+      - name: Transpile scripts
+        run: |
+          tsc *.ts
+        working-directory: .github/scripts
       - name: Make sure no changes from linters are detected
         run: |
           git diff --exit-code || (echo "::error::Please run 'npm run all' to fix the issues" && exit 1)

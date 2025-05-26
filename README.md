@@ -4,7 +4,7 @@ A GitHub Action to run [ruff](https://github.com/astral-sh/ruff).
 
 This action is commonly used as a pass/fail test to ensure your repository stays
 clean, abiding the [rules](https://docs.astral.sh/ruff/rules/) specified in your
-configuration. Though it runs `ruff check` by default, the action can do 
+configuration. Though it runs `ruff check` by default, the action can do
 anything `ruff` can (ex, fix).
 
 ## Contents
@@ -18,7 +18,7 @@ anything `ruff` can (ex, fix).
   - [Install specific versions](#install-specific-versions)
     - [Install the latest version](#install-the-latest-version)
     - [Install a specific version](#install-a-specific-version)
-    - [Install a version by supplying a semver range](#install-a-version-by-supplying-a-semver-range)
+    - [Install a version by supplying a semver range or pep440 specifier](#install-a-version-by-supplying-a-semver-range-or-pep440-specifier)
     - [Install a version from a specified version file](#install-a-version-from-a-specified-version-file)
   - [Validate checksum](#validate-checksum)
   - [GitHub authentication token](#github-authentication-token)
@@ -116,9 +116,10 @@ the latest version is installed.
     version: "0.4.4"
 ```
 
-#### Install a version by supplying a semver range
+#### Install a version by supplying a semver range or pep440 specifier
 
 You can specify a [semver range](https://github.com/npm/node-semver?tab=readme-ov-file#ranges)
+or [pep440 specifier](https://peps.python.org/pep-0440/#version-specifiers)
 to install the latest version that satisfies the range.
 
 ```yaml
@@ -133,6 +134,13 @@ to install the latest version that satisfies the range.
   uses: astral-sh/ruff-action@v3
   with:
     version: "0.4.x"
+```
+
+```yaml
+- name: Install a pep440-specifier-satisfying version of ruff
+  uses: astral-sh/ruff-action@v3
+  with:
+    version: ">=0.11.10,<0.12.0"
 ```
 
 #### Install a version from a specified version file

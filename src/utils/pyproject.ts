@@ -31,6 +31,7 @@ interface Pyproject {
   "dependency-groups"?: Record<string, Array<string | object>>;
   tool?: {
     poetry?: {
+      dependencies?: Record<string, string | object>;
       group?: Record<string, { dependencies: Record<string, string | object> }>;
     };
   };
@@ -59,7 +60,11 @@ function getRuffVersionFromPoetryGroups(
 ): string | undefined {
   // Special handling for Poetry until it supports PEP 735
   // See: <https://github.com/python-poetry/poetry/issues/9751>
-  const poetryGroups = Object.values(pyproject?.tool?.poetry?.group || {});
+  const poetry = pyproject?.tool?.poetry || {};
+  const poetryGroups = Object.values(poetry.group || {});
+  if (poetry.dependencies) {
+    poetryGroups.unshift({ dependencies: poetry.dependencies });
+  }
   return poetryGroups
     .flatMap((group) => Object.entries(group.dependencies))
     .map(([name, spec]) => {

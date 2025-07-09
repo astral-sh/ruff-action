@@ -1,5 +1,5 @@
 [project]
-name = "pyproject-dependency-poetry-project"
+name = "pyproject-dependency-poetry-grouped-project"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"

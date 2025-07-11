@@ -25,7 +25,7 @@
     "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
     "@actions/tool-cache": "^2.0.2",
-    "@octokit/core": "^6.1.4",
+    "@octokit/core": "^7.0.3",
     "@octokit/plugin-paginate-rest": "^13.0.1",
     "@octokit/plugin-rest-endpoint-methods": "^16.0.0",
     "@renovatebot/pep440": "^4.1.0",

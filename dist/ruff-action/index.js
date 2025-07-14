@@ -31943,7 +31943,11 @@ function parsePyproject(pyprojectContent) {
 function getRuffVersionFromPoetryGroups(pyproject) {
     // Special handling for Poetry until it supports PEP 735
     // See: <https://github.com/python-poetry/poetry/issues/9751>
-    const poetryGroups = Object.values(pyproject?.tool?.poetry?.group || {});
+    const poetry = pyproject?.tool?.poetry || {};
+    const poetryGroups = Object.values(poetry.group || {});
+    if (poetry.dependencies) {
+        poetryGroups.unshift({ dependencies: poetry.dependencies });
+    }
     return poetryGroups
         .flatMap((group) => Object.entries(group.dependencies))
         .map(([name, spec]) => {

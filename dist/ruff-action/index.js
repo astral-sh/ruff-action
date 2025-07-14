@@ -34070,15 +34070,15 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // dist/index.js
-var dist_exports = {};
-__export(dist_exports, {
+var index_exports = {};
+__export(index_exports, {
   TomlDate: () => TomlDate,
   TomlError: () => TomlError,
-  default: () => dist_default,
+  default: () => index_default,
   parse: () => parse,
   stringify: () => stringify
 });
-module.exports = __toCommonJS(dist_exports);
+module.exports = __toCommonJS(index_exports);
 
 // dist/error.js
 function getLineColFromPtr(string, ptr) {
@@ -34160,9 +34160,7 @@ function skipUntil(str, ptr, sep, end, banNewLines = false) {
       i = indexOfNewline(str, i);
     } else if (c === sep) {
       return i + 1;
-    } else if (c === end) {
-      return i;
-    } else if (banNewLines && (c === "\n" || c === "\r" && str[i + 1] === "\n")) {
+    } else if (c === end || banNewLines && (c === "\n" || c === "\r" && str[i + 1] === "\n")) {
       return i;
     }
   }
@@ -34177,7 +34175,7 @@ function getStringEnd(str, seek) {
   seek += target.length - 1;
   do
     seek = str.indexOf(target, ++seek);
-  while (seek > -1 && first !== "'" && str[seek - 1] === "\\" && str[seek - 2] !== "\\");
+  while (seek > -1 && first !== "'" && str[seek - 1] === "\\" && (str[seek - 2] !== "\\" || str[seek - 3] === "\\"));
   if (seek > -1) {
     seek += target.length;
     if (target.length > 1) {
@@ -34208,6 +34206,7 @@ var TomlDate = class _TomlDate extends Date {
           date = `0000-01-01T${date}`;
         }
         hasTime = !!match[2];
+        hasTime && date[10] === " " && (date = date.replace(" ", "T"));
         if (match[2] && +match[2] > 23) {
           date = "";
         } else {
@@ -34368,7 +34367,7 @@ function parseString(str, ptr = 0, endPtr = str.length) {
   }
   return parsed + str.slice(sliceStart, endPtr - 1);
 }
-function parseValue(value, toml, ptr) {
+function parseValue(value, toml, ptr, integersAsBigInt) {
   if (value === "true")
     return true;
   if (value === "false")
@@ -34380,31 +34379,36 @@ function parseValue(value, toml, ptr) {
   if (value === "nan" || value === "+nan" || value === "-nan")
     return NaN;
   if (value === "-0")
-    return 0;
-  let isInt;
-  if ((isInt = INT_REGEX.test(value)) || FLOAT_REGEX.test(value)) {
+    return integersAsBigInt ? 0n : 0;
+  let isInt = INT_REGEX.test(value);
+  if (isInt || FLOAT_REGEX.test(value)) {
     if (LEADING_ZERO.test(value)) {
       throw new TomlError("leading zeroes are not allowed", {
         toml,
         ptr
       });
     }
-    let numeric = +value.replace(/_/g, "");
+    value = value.replace(/_/g, "");
+    let numeric = +value;
     if (isNaN(numeric)) {
       throw new TomlError("invalid number", {
         toml,
         ptr
       });
     }
-    if (isInt && !Number.isSafeInteger(numeric)) {
-      throw new TomlError("integer value cannot be represented losslessly", {
-        toml,
-        ptr
-      });
+    if (isInt) {
+      if ((isInt = !Number.isSafeInteger(numeric)) && !integersAsBigInt) {
+        throw new TomlError("integer value cannot be represented losslessly", {
+          toml,
+          ptr
+        });
+      }
+      if (isInt || integersAsBigInt === true)
+        numeric = BigInt(value);
     }
     return numeric;
   }
-  let date = new TomlDate(value);
+  const date = new TomlDate(value);
   if (!date.isValid()) {
     throw new TomlError("invalid value", {
       toml,
@@ -34434,7 +34438,7 @@ function sliceAndTrimEndOf(str, startPtr, endPtr, allowNewLines) {
   }
   return [trimmed, commentIdx];
 }
-function extractValue(str, ptr, end, depth) {
+function extractValue(str, ptr, end, depth, integersAsBigInt) {
   if (depth === 0) {
     throw new TomlError("document contains excessively nested structures. aborting.", {
       toml: str,
@@ -34443,9 +34447,9 @@ function extractValue(str, ptr, end, depth) {
   }
   let c = str[ptr];
   if (c === "[" || c === "{") {
-    let [value, endPtr2] = c === "[" ? parseArray(str, ptr, depth) : parseInlineTable(str, ptr, depth);
-    let newPtr = skipUntil(str, endPtr2, ",", end);
-    if (end === "}") {
+    let [value, endPtr2] = c === "[" ? parseArray(str, ptr, depth, integersAsBigInt) : parseInlineTable(str, ptr, depth, integersAsBigInt);
+    let newPtr = end ? skipUntil(str, endPtr2, ",", end) : endPtr2;
+    if (endPtr2 - newPtr && end === "}") {
       let nextNewLine = indexOfNewline(str, endPtr2, newPtr);
       if (nextNewLine > -1) {
         throw new TomlError("newlines are not allowed in inline tables", {
@@ -34485,7 +34489,7 @@ function extractValue(str, ptr, end, depth) {
     endPtr += +(str[endPtr] === ",");
   }
   return [
-    parseValue(slice[0], str, ptr),
+    parseValue(slice[0], str, ptr, integersAsBigInt),
     endPtr
   ];
 }
@@ -34559,28 +34563,20 @@ function parseKey(str, ptr, end = "=") {
   } while (dot + 1 && dot < endPtr);
   return [parsed, skipVoid(str, endPtr + 1, true, true)];
 }
-function parseInlineTable(str, ptr, depth) {
+function parseInlineTable(str, ptr, depth, integersAsBigInt) {
   let res = {};
   let seen = /* @__PURE__ */ new Set();
   let c;
   let comma = 0;
   ptr++;
   while ((c = str[ptr++]) !== "}" && c) {
+    let err = { toml: str, ptr: ptr - 1 };
     if (c === "\n") {
-      throw new TomlError("newlines are not allowed in inline tables", {
-        toml: str,
-        ptr: ptr - 1
-      });
+      throw new TomlError("newlines are not allowed in inline tables", err);
     } else if (c === "#") {
-      throw new TomlError("inline tables cannot contain comments", {
-        toml: str,
-        ptr: ptr - 1
-      });
+      throw new TomlError("inline tables cannot contain comments", err);
     } else if (c === ",") {
-      throw new TomlError("expected key-value, found comma", {
-        toml: str,
-        ptr: ptr - 1
-      });
+      throw new TomlError("expected key-value, found comma", err);
     } else if (c !== " " && c !== "	") {
       let k;
       let t = res;
@@ -34606,7 +34602,7 @@ function parseInlineTable(str, ptr, depth) {
           ptr
         });
       }
-      let [value, valueEndPtr] = extractValue(str, keyEndPtr, "}", depth - 1);
+      let [value, valueEndPtr] = extractValue(str, keyEndPtr, "}", depth - 1, integersAsBigInt);
       seen.add(value);
       t[k] = value;
       ptr = valueEndPtr;
@@ -34627,7 +34623,7 @@ function parseInlineTable(str, ptr, depth) {
   }
   return [res, ptr];
 }
-function parseArray(str, ptr, depth) {
+function parseArray(str, ptr, depth, integersAsBigInt) {
   let res = [];
   let c;
   ptr++;
@@ -34640,7 +34636,7 @@ function parseArray(str, ptr, depth) {
     } else if (c === "#")
       ptr = skipComment(str, ptr);
     else if (c !== " " && c !== "	" && c !== "\n" && c !== "\r") {
-      let e = extractValue(str, ptr - 1, "]", depth - 1);
+      let e = extractValue(str, ptr - 1, "]", depth - 1, integersAsBigInt);
       res.push(e[0]);
       ptr = e[1];
     }
@@ -34714,8 +34710,7 @@ function peekTable(key, table, meta, type) {
   }
   return [k, t, state.c];
 }
-function parse(toml, opts) {
-  let maxDepth = opts?.maxDepth ?? 1e3;
+function parse(toml, { maxDepth = 1e3, integersAsBigInt } = {}) {
   let res = {};
   let meta = {};
   let tbl = res;
@@ -34764,7 +34759,7 @@ function parse(toml, opts) {
           ptr
         });
       }
-      let v = extractValue(toml, k[1], void 0, maxDepth);
+      let v = extractValue(toml, k[1], void 0, maxDepth, integersAsBigInt);
       p[1][p[0]] = v[0];
       ptr = v[1];
     }
@@ -34802,7 +34797,7 @@ function isArrayOfTables(obj) {
 function formatString(s) {
   return JSON.stringify(s).replace(/\x7f/g, "\\u007f");
 }
-function stringifyValue(val, type, depth) {
+function stringifyValue(val, type, depth, numberAsFloat) {
   if (depth === 0) {
     throw new Error("Could not stringify the object: maximum object depth exceeded");
   }
@@ -34813,6 +34808,8 @@ function stringifyValue(val, type, depth) {
       return "inf";
     if (val === -Infinity)
       return "-inf";
+    if (numberAsFloat && Number.isInteger(val))
+      return val.toFixed(1);
     return val.toString();
   }
   if (type === "bigint" || type === "boolean") {
@@ -34828,13 +34825,13 @@ function stringifyValue(val, type, depth) {
     return val.toISOString();
   }
   if (type === "object") {
-    return stringifyInlineTable(val, depth);
+    return stringifyInlineTable(val, depth, numberAsFloat);
   }
   if (type === "array") {
-    return stringifyArray(val, depth);
+    return stringifyArray(val, depth, numberAsFloat);
   }
 }
-function stringifyInlineTable(obj, depth) {
+function stringifyInlineTable(obj, depth, numberAsFloat) {
   let keys = Object.keys(obj);
   if (keys.length === 0)
     return "{}";
@@ -34845,11 +34842,11 @@ function stringifyInlineTable(obj, depth) {
       res += ", ";
     res += BARE_KEY.test(k) ? k : formatString(k);
     res += " = ";
-    res += stringifyValue(obj[k], extendedTypeOf(obj[k]), depth - 1);
+    res += stringifyValue(obj[k], extendedTypeOf(obj[k]), depth - 1, numberAsFloat);
   }
   return res + " }";
 }
-function stringifyArray(array, depth) {
+function stringifyArray(array, depth, numberAsFloat) {
   if (array.length === 0)
     return "[]";
   let res = "[ ";
@@ -34859,11 +34856,11 @@ function stringifyArray(array, depth) {
     if (array[i] === null || array[i] === void 0) {
       throw new TypeError("arrays cannot contain null or undefined values");
     }
-    res += stringifyValue(array[i], extendedTypeOf(array[i]), depth - 1);
+    res += stringifyValue(array[i], extendedTypeOf(array[i]), depth - 1, numberAsFloat);
   }
   return res + " ]";
 }
-function stringifyArrayTable(array, key, depth) {
+function stringifyArrayTable(array, key, depth, numberAsFloat) {
   if (depth === 0) {
     throw new Error("Could not stringify the object: maximum object depth exceeded");
   }
@@ -34871,12 +34868,12 @@ function stringifyArrayTable(array, key, depth) {
   for (let i = 0; i < array.length; i++) {
     res += `[[${key}]]
 `;
-    res += stringifyTable(array[i], key, depth);
+    res += stringifyTable(array[i], key, depth, numberAsFloat);
     res += "\n\n";
   }
   return res;
 }
-function stringifyTable(obj, prefix, depth) {
+function stringifyTable(obj, prefix, depth, numberAsFloat) {
   if (depth === 0) {
     throw new Error("Could not stringify the object: maximum object depth exceeded");
   }
@@ -34892,17 +34889,17 @@ function stringifyTable(obj, prefix, depth) {
       }
       let key = BARE_KEY.test(k) ? k : formatString(k);
       if (type === "array" && isArrayOfTables(obj[k])) {
-        tables += stringifyArrayTable(obj[k], prefix ? `${prefix}.${key}` : key, depth - 1);
+        tables += stringifyArrayTable(obj[k], prefix ? `${prefix}.${key}` : key, depth - 1, numberAsFloat);
       } else if (type === "object") {
         let tblKey = prefix ? `${prefix}.${key}` : key;
         tables += `[${tblKey}]
 `;
-        tables += stringifyTable(obj[k], tblKey, depth - 1);
+        tables += stringifyTable(obj[k], tblKey, depth - 1, numberAsFloat);
         tables += "\n\n";
       } else {
         preamble += key;
         preamble += " = ";
-        preamble += stringifyValue(obj[k], type, depth);
+        preamble += stringifyValue(obj[k], type, depth, numberAsFloat);
         preamble += "\n";
       }
     }
@@ -34910,16 +34907,15 @@ function stringifyTable(obj, prefix, depth) {
   return `${preamble}
 ${tables}`.trim();
 }
-function stringify(obj, opts) {
+function stringify(obj, { maxDepth = 1e3, numbersAsFloat = false } = {}) {
   if (extendedTypeOf(obj) !== "object") {
     throw new TypeError("stringify can only be called with an object");
   }
-  let maxDepth = opts?.maxDepth ?? 1e3;
-  return stringifyTable(obj, "", maxDepth);
+  return stringifyTable(obj, "", maxDepth, numbersAsFloat);
 }
 
 // dist/index.js
-var dist_default = { parse, stringify, TomlDate, TomlError };
+var index_default = { parse, stringify, TomlDate, TomlError };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (0);
 /*!
@@ -35521,7 +35517,7 @@ class RequestError extends Error {
 
 
 // pkg/dist-src/version.js
-var dist_bundle_VERSION = "0.0.0-development";
+var dist_bundle_VERSION = "10.0.3";
 
 // pkg/dist-src/defaults.js
 var defaults_default = {
@@ -35753,7 +35749,8 @@ var NON_VARIABLE_OPTIONS = [
   "headers",
   "request",
   "query",
-  "mediaType"
+  "mediaType",
+  "operationName"
 ];
 var FORBIDDEN_VARIABLE_OPTIONS = ["query", "method", "url"];
 var GHES_V3_SUFFIX_REGEX = /\/api\/v3\/?$/;
@@ -35891,7 +35888,7 @@ var createTokenAuth = function createTokenAuth2(token) {
 
 
 ;// CONCATENATED MODULE: ./node_modules/@octokit/core/dist-src/version.js
-const version_VERSION = "6.1.4";
+const version_VERSION = "7.0.3";
 
 
 ;// CONCATENATED MODULE: ./node_modules/@octokit/core/dist-src/index.js
@@ -35905,6 +35902,21 @@ const noop = () => {
 };
 const consoleWarn = console.warn.bind(console);
 const consoleError = console.error.bind(console);
+function createLogger(logger = {}) {
+  if (typeof logger.debug !== "function") {
+    logger.debug = noop;
+  }
+  if (typeof logger.info !== "function") {
+    logger.info = noop;
+  }
+  if (typeof logger.warn !== "function") {
+    logger.warn = consoleWarn;
+  }
+  if (typeof logger.error !== "function") {
+    logger.error = consoleError;
+  }
+  return logger;
+}
 const userAgentTrail = `octokit-core.js/${version_VERSION} ${getUserAgent()}`;
 class Octokit {
   static VERSION = version_VERSION;
@@ -35972,15 +35984,7 @@ class Octokit {
     }
     this.request = request.defaults(requestDefaults);
     this.graphql = withCustomRequest(this.request).defaults(requestDefaults);
-    this.log = Object.assign(
-      {
-        debug: noop,
-        info: noop,
-        warn: consoleWarn,
-        error: consoleError
-      },
-      options.log
-    );
+    this.log = createLogger(options.log);
     this.hook = hook;
     if (!options.authStrategy) {
       if (!options.auth) {

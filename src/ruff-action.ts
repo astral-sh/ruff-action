@@ -1,18 +1,13 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import * as path from "node:path";
+import * as semver from "semver";
 import {
   downloadVersion,
   resolveVersion,
   tryGetFromToolCache,
 } from "./download/download-version";
-
-import {
-  type Architecture,
-  getArch,
-  getPlatform,
-  type Platform,
-} from "./utils/platforms";
 import {
   args,
   checkSum,
@@ -21,9 +16,13 @@ import {
   version,
   versionFile as versionFileInput,
 } from "./utils/inputs";
+import {
+  type Architecture,
+  getArch,
+  getPlatform,
+  type Platform,
+} from "./utils/platforms";
 import { getRuffVersionFromRequirementsFile } from "./utils/pyproject";
-import * as fs from "node:fs";
-import * as semver from "semver";
 
 async function run(): Promise<void> {
   const platform = getPlatform();

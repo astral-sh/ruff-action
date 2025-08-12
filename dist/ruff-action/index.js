@@ -29014,12 +29014,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.validateChecksum = validateChecksum;
 exports.isknownVersion = isknownVersion;
-const fs = __importStar(__nccwpck_require__(3024));
 const crypto = __importStar(__nccwpck_require__(7598));
+const fs = __importStar(__nccwpck_require__(3024));
 const core = __importStar(__nccwpck_require__(7484));
 const known_checksums_1 = __nccwpck_require__(2764);
 async function validateChecksum(checkSum, downloadPath, arch, platform, version) {
-    let isValid = undefined;
+    let isValid;
     if (checkSum !== undefined && checkSum !== "") {
         isValid = await validateFileCheckSum(downloadPath, checkSum);
     }
@@ -31550,17 +31550,17 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.tryGetFromToolCache = tryGetFromToolCache;
 exports.downloadVersion = downloadVersion;
 exports.resolveVersion = resolveVersion;
+const node_fs_1 = __nccwpck_require__(3024);
+const path = __importStar(__nccwpck_require__(6760));
 const core = __importStar(__nccwpck_require__(7484));
 const tc = __importStar(__nccwpck_require__(3472));
-const path = __importStar(__nccwpck_require__(6760));
-const node_fs_1 = __nccwpck_require__(3024);
-const semver = __importStar(__nccwpck_require__(9318));
-const pep440 = __importStar(__nccwpck_require__(3297));
-const constants_1 = __nccwpck_require__(6156);
-const checksum_1 = __nccwpck_require__(5391);
 const core_1 = __nccwpck_require__(767);
 const plugin_paginate_rest_1 = __nccwpck_require__(3779);
 const plugin_rest_endpoint_methods_1 = __nccwpck_require__(9210);
+const pep440 = __importStar(__nccwpck_require__(3297));
+const semver = __importStar(__nccwpck_require__(9318));
+const constants_1 = __nccwpck_require__(6156);
+const checksum_1 = __nccwpck_require__(5391);
 const PaginatingOctokit = core_1.Octokit.plugin(plugin_paginate_rest_1.paginateRest, plugin_rest_endpoint_methods_1.restEndpointMethods);
 function tryGetFromToolCache(arch, version) {
     core.debug(`Trying to get ruff from tool cache for ${version}...`);
@@ -31571,7 +31571,7 @@ function tryGetFromToolCache(arch, version) {
         resolvedVersion = version;
     }
     const installedPath = tc.find(constants_1.TOOL_CACHE_NAME, resolvedVersion, arch);
-    return { version: resolvedVersion, installedPath };
+    return { installedPath, version: resolvedVersion };
 }
 async function downloadVersion(platform, arch, version, checkSum, githubToken) {
     const artifact = `ruff-${arch}-${platform}`;
@@ -31586,7 +31586,7 @@ async function downloadVersion(platform, arch, version, checkSum, githubToken) {
     await (0, checksum_1.validateChecksum)(checkSum, downloadPath, arch, platform, version);
     const extractedDir = await extractDownloadedArtifact(version, downloadPath, extension, platform, artifact);
     const cachedToolDir = await tc.cacheDir(extractedDir, constants_1.TOOL_CACHE_NAME, version, arch);
-    return { version: version, cachedToolDir };
+    return { cachedToolDir, version: version };
 }
 function constructDownloadUrl(version, platform, arch) {
     const artifactVersionSuffix = semver.lte(version, "v0.4.10") && semver.gte(version, "v0.1.8")
@@ -31750,15 +31750,15 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const fs = __importStar(__nccwpck_require__(3024));
+const path = __importStar(__nccwpck_require__(6760));
 const core = __importStar(__nccwpck_require__(7484));
 const exec = __importStar(__nccwpck_require__(5236));
-const path = __importStar(__nccwpck_require__(6760));
-const download_version_1 = __nccwpck_require__(8255);
-const platforms_1 = __nccwpck_require__(8361);
-const inputs_1 = __nccwpck_require__(9612);
-const pyproject_1 = __nccwpck_require__(3929);
-const fs = __importStar(__nccwpck_require__(3024));
 const semver = __importStar(__nccwpck_require__(9318));
+const download_version_1 = __nccwpck_require__(8255);
+const inputs_1 = __nccwpck_require__(9612);
+const platforms_1 = __nccwpck_require__(8361);
+const pyproject_1 = __nccwpck_require__(3929);
 async function run() {
     const platform = (0, platforms_1.getPlatform)();
     const arch = (0, platforms_1.getArch)();
@@ -31924,9 +31924,9 @@ exports.getPlatform = getPlatform;
 function getArch() {
     const arch = process.arch;
     const archMapping = {
+        arm64: "aarch64",
         ia32: "i686",
         x64: "x86_64",
-        arm64: "aarch64",
     };
     if (arch in archMapping) {
         return archMapping[arch];
@@ -31935,8 +31935,8 @@ function getArch() {
 function getPlatform() {
     const platform = process.platform;
     const platformMapping = {
-        linux: "unknown-linux-gnu",
         darwin: "apple-darwin",
+        linux: "unknown-linux-gnu",
         win32: "pc-windows-msvc",
     };
     if (platform in platformMapping) {

@@ -4,9 +4,9 @@
       "owner": "ruff-format",
       "pattern": [
         {
-          "regexp": "^(Would reformat):\\s*(.+)$",
+          "file": 2,
           "message": 1,
-          "file": 2
+          "regexp": "^(Would reformat):\\s*(.+)$"
         }
       ]
     }

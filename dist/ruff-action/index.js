@@ -31657,6 +31657,10 @@ async function getReleaseTagNames(octokit) {
         owner: constants_1.OWNER,
         repo: constants_1.REPO,
     });
+    const releaseTagNames = response.map((release) => release.tag_name);
+    if (releaseTagNames.length === 0) {
+        throw Error("Github API request failed while getting releases. Check the GitHub status page for outages. Try again later.");
+    }
     return response.map((release) => release.tag_name);
 }
 async function getLatestVersion(githubToken) {
@@ -31674,6 +31678,7 @@ async function getLatestVersion(githubToken) {
             latestRelease = await getLatestRelease(octokit);
         }
         else {
+            core.error("Github API request failed while getting latest release. Check the GitHub status page for outages. Try again later.");
             throw err;
         }
     }

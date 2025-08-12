@@ -1,15 +1,15 @@
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
 import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
-import * as path from "node:path";
-import { promises as fs } from "node:fs";
-import * as semver from "semver";
-import * as pep440 from "@renovatebot/pep440";
-import { OWNER, REPO, TOOL_CACHE_NAME } from "../utils/constants";
-import type { Architecture, Platform } from "../utils/platforms";
-import { validateChecksum } from "./checksum/checksum";
 import { Octokit } from "@octokit/core";
 import { paginateRest } from "@octokit/plugin-paginate-rest";
 import { restEndpointMethods } from "@octokit/plugin-rest-endpoint-methods";
+import * as pep440 from "@renovatebot/pep440";
+import * as semver from "semver";
+import { OWNER, REPO, TOOL_CACHE_NAME } from "../utils/constants";
+import type { Architecture, Platform } from "../utils/platforms";
+import { validateChecksum } from "./checksum/checksum";
 
 const PaginatingOctokit = Octokit.plugin(paginateRest, restEndpointMethods);
 
@@ -25,7 +25,7 @@ export function tryGetFromToolCache(
     resolvedVersion = version;
   }
   const installedPath = tc.find(TOOL_CACHE_NAME, resolvedVersion, arch);
-  return { version: resolvedVersion, installedPath };
+  return { installedPath, version: resolvedVersion };
 }
 
 export async function downloadVersion(
@@ -65,7 +65,7 @@ export async function downloadVersion(
     version,
     arch,
   );
-  return { version: version, cachedToolDir };
+  return { cachedToolDir, version: version };
 }
 
 function constructDownloadUrl(

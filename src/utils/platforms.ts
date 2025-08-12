@@ -9,9 +9,9 @@ export type Architecture = "i686" | "x86_64" | "aarch64";
 export function getArch(): Architecture | undefined {
   const arch = process.arch;
   const archMapping: { [key: string]: Architecture } = {
+    arm64: "aarch64",
     ia32: "i686",
     x64: "x86_64",
-    arm64: "aarch64",
   };
 
   if (arch in archMapping) {
@@ -22,8 +22,8 @@ export function getArch(): Architecture | undefined {
 export function getPlatform(): Platform | undefined {
   const platform = process.platform;
   const platformMapping: { [key: string]: Platform } = {
-    linux: "unknown-linux-gnu",
     darwin: "apple-darwin",
+    linux: "unknown-linux-gnu",
     win32: "pc-windows-msvc",
   };
 

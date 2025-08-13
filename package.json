@@ -27,7 +27,7 @@
     "@octokit/plugin-paginate-rest": "^13.1.1",
     "@octokit/plugin-rest-endpoint-methods": "^16.0.0",
     "@renovatebot/pep440": "^4.1.0",
-    "smol-toml": "^1.4.1"
+    "smol-toml": "^1.4.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.4",

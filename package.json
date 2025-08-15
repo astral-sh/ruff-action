@@ -30,7 +30,7 @@
     "smol-toml": "^1.4.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.4",
+    "@biomejs/biome": "2.2.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.2.1",
     "@types/semver": "^7.7.0",

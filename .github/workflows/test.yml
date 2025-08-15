@@ -80,7 +80,7 @@ jobs:
           src: __tests__/fixtures/python-project
       - name: Check if the action failed
         run: |
-          if [ ${INSTALL_OUTCOME} == "success" ]; then
+          if [ "${INSTALL_OUTCOME}" == "success" ]; then
             exit 1
           fi
         env:
@@ -333,7 +333,7 @@ jobs:
           src: __tests__/fixtures/malformed-python-project
       - name: Check if the action failed
         run: |
-          if [ ${FORMAT_SHOULD_FAIL_OUTCOME} == "success" ]; then
+          if [ "${FORMAT_SHOULD_FAIL_OUTCOME}" == "success" ]; then
             exit 1
           fi
         env:
@@ -346,7 +346,7 @@ jobs:
           src: __tests__/fixtures/malformed-python-project
       - name: Check if the action failed
         run: |
-          if [ ${CHECK_SHOULD_FAIL_OUTCOME} == "success" ]; then
+          if [ "${CHECK_SHOULD_FAIL_OUTCOME}" == "success" ]; then
             exit 1
           fi
         env:

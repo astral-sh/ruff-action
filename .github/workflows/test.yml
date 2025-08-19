@@ -10,14 +10,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Actionlint
         uses: eifinger/actionlint-action@23c85443d840cd73bbecb9cddfc933cc21649a38  # v1.9.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
       - run: |
@@ -38,7 +42,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, macos-14, windows-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use latest version
         uses: ./
         with:
@@ -51,7 +57,9 @@ jobs:
         ruff-version: ["0.1.7", "0.1.8", "0.4.7", "0.4.10", "0.7", "0.7.x", ">=0.7.0"]
         os: [ ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-14, windows-latest ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use version ${{ matrix.ruff-version }}
         uses: ./
         with:
@@ -60,7 +68,9 @@ jobs:
   test-unsupported-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Try install old version
         id: install
         continue-on-error: true
@@ -70,13 +80,17 @@ jobs:
           src: __tests__/fixtures/python-project
       - name: Check if the action failed
         run: |
-          if [ ${{ steps.install.outcome }} == "success" ]; then
+          if [ "${INSTALL_OUTCOME}" == "success" ]; then
             exit 1
           fi
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
   test-version-from-version-file-pyproject:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use version from pyproject.toml
         id: ruff-action
         uses: ./
@@ -93,7 +107,9 @@ jobs:
   test-default-version-from-pyproject:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from pyproject.toml
         id: ruff-action
         uses: ./
@@ -109,7 +125,9 @@ jobs:
   test-default-version-from-pyproject-dev-group:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from pyproject.toml dev group
         id: ruff-action
         uses: ./
@@ -126,7 +144,9 @@ jobs:
   test-default-version-from-pyproject-dependency-groups:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from pyproject.toml dependency groups
         id: ruff-action
         uses: ./
@@ -143,7 +163,9 @@ jobs:
   test-default-version-from-pyproject-poetry-groups:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from pyproject.toml poetry group dependencies
         id: ruff-action
         uses: ./
@@ -160,7 +182,9 @@ jobs:
   test-default-version-from-pyproject-poetry:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from pyproject.toml poetry dependencies
         id: ruff-action
         uses: ./
@@ -177,7 +201,9 @@ jobs:
   test-default-version-from-pyproject-optional-dependencies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from pyproject.toml optional dependencies
         id: ruff-action
         uses: ./
@@ -194,7 +220,9 @@ jobs:
   test-default-version-from-requirements:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version from requirements.txt
         id: ruff-action
         uses: ./
@@ -211,7 +239,9 @@ jobs:
   test-semver-range:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use version 0.7
         id: ruff-action
         uses: ./
@@ -228,7 +258,9 @@ jobs:
   test-pep440-version-specifier:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Install version 0.9.10
         id: ruff-action
         uses: ./
@@ -252,7 +284,9 @@ jobs:
           - os: macos-latest
             checksum: "af9583bff12afbca5d5670334e0187dd60c4d91bc71317d1b2dde70cb1200ba9"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Checksum matches expected
         uses: ./
         with:
@@ -262,7 +296,9 @@ jobs:
   test-with-explicit-token:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use default version
         uses: ./
         with:
@@ -274,7 +310,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use args
         uses: ./
         with:
@@ -283,7 +321,9 @@ jobs:
   test-failure:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Format should fail
         id: format-should-fail
         continue-on-error: true
@@ -293,9 +333,11 @@ jobs:
           src: __tests__/fixtures/malformed-python-project
       - name: Check if the action failed
         run: |
-          if [ ${{ steps.format-should-fail.outcome }} == "success" ]; then
+          if [ "${FORMAT_SHOULD_FAIL_OUTCOME}" == "success" ]; then
             exit 1
           fi
+        env:
+          FORMAT_SHOULD_FAIL_OUTCOME: ${{ steps.format-should-fail.outcome }}
       - name: Check should fail
         id: check-should-fail
         continue-on-error: true
@@ -304,16 +346,20 @@ jobs:
           src: __tests__/fixtures/malformed-python-project
       - name: Check if the action failed
         run: |
-          if [ ${{ steps.check-should-fail.outcome }} == "success" ]; then
+          if [ "${CHECK_SHOULD_FAIL_OUTCOME}" == "success" ]; then
             exit 1
           fi
+        env:
+          CHECK_SHOULD_FAIL_OUTCOME: ${{ steps.check-should-fail.outcome }}
   test-multiple-src:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Use args
         uses: ./
         with:

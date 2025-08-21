@@ -31840,7 +31840,7 @@ async function determineVersion() {
     }
     const versionFromPyproject = (0, pyproject_1.getRuffVersionFromRequirementsFile)(pyProjectPath);
     if (versionFromPyproject === undefined) {
-        core.warning(`Could not parse version from ${pyProjectPath}. Using latest version.`);
+        core.info(`Could not parse version from ${pyProjectPath}. Using latest version.`);
     }
     return await (0, download_version_1.resolveVersion)(versionFromPyproject || "latest", inputs_1.githubToken);
 }

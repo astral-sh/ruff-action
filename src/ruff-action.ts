@@ -115,7 +115,7 @@ async function determineVersion(): Promise<string> {
   const versionFromPyproject =
     getRuffVersionFromRequirementsFile(pyProjectPath);
   if (versionFromPyproject === undefined) {
-    core.warning(
+    core.info(
       `Could not parse version from ${pyProjectPath}. Using latest version.`,
     );
   }

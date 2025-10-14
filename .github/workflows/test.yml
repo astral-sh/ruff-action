@@ -20,7 +20,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Actionlint
-        uses: eifinger/actionlint-action@23c85443d840cd73bbecb9cddfc933cc21649a38  # v1.9.1
+        uses: eifinger/actionlint-action@03ff1f78c0670b71017616a37170f327df932030  # v1.9.2
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version: "20"

@@ -1,5 +1,11 @@
 import { promises as fs } from "node:fs";
 import * as tc from "@actions/tool-cache";
+import {
+  isRetryableError,
+  NonRetryableError,
+  RetryableError,
+  withRetry,
+} from "../../utils/retry";
 import { KNOWN_CHECKSUMS } from "./known-checksums";
 export async function updateChecksums(
   filePath: string,
@@ -60,6 +66,27 @@ async function getOrDownloadChecksum(
 }
 
 async function downloadAssetContent(downloadUrl: string): Promise<string> {
-  const downloadPath = await tc.downloadTool(downloadUrl);
-  return await fs.readFile(downloadPath, "utf8");
+  return await withRetry(
+    async () => {
+      try {
+        const downloadPath = await tc.downloadTool(downloadUrl);
+        return await fs.readFile(downloadPath, "utf8");
+      } catch (error) {
+        const err = error as Error;
+        if (isRetryableError(err)) {
+          throw new RetryableError(
+            `Failed to download checksum file: ${err.message}`,
+            err,
+          );
+        } else {
+          throw new NonRetryableError(
+            `Failed to download checksum file: ${err.message}`,
+            err,
+          );
+        }
+      }
+    },
+    { maxRetries: 3, timeoutMs: 30000 },
+    "download checksum file",
+  );
 }

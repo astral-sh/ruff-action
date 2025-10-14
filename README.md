@@ -186,6 +186,15 @@ are not sufficient, you can provide a custom GitHub token with the necessary per
     github-token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
 ```
 
+## Reliability
+
+This action includes built-in retry mechanisms to handle intermittent network issues that can occur when downloading Ruff or fetching version information from GitHub's API. The action will automatically retry failed operations up to 3 times with exponential backoff, which significantly reduces failure rates due to temporary connectivity issues.
+
+- **GitHub API calls**: 30-second timeout with 3 retries
+- **Binary downloads**: 60-second timeout with 3 retries  
+- **Smart error detection**: Automatically identifies retryable errors (timeouts, network issues, 5xx HTTP responses)
+- **Detailed logging**: Provides comprehensive error information for debugging
+
 ## Outputs
 
 | Output         | Description                             |

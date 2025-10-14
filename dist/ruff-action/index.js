@@ -31722,6 +31722,7 @@ const plugin_rest_endpoint_methods_1 = __nccwpck_require__(9210);
 const pep440 = __importStar(__nccwpck_require__(3297));
 const semver = __importStar(__nccwpck_require__(9318));
 const constants_1 = __nccwpck_require__(6156);
+const retry_1 = __nccwpck_require__(5931);
 const checksum_1 = __nccwpck_require__(5391);
 const PaginatingOctokit = core_1.Octokit.plugin(plugin_paginate_rest_1.paginateRest, plugin_rest_endpoint_methods_1.restEndpointMethods);
 function tryGetFromToolCache(arch, version) {
@@ -31743,7 +31744,21 @@ async function downloadVersion(platform, arch, version, checkSum, githubToken) {
     }
     const downloadUrl = constructDownloadUrl(version, platform, arch);
     core.debug(`Downloading ruff from "${downloadUrl}" ...`);
-    const downloadPath = await tc.downloadTool(downloadUrl, undefined, githubToken);
+    const downloadPath = await (0, retry_1.withRetry)(async () => {
+        try {
+            return await tc.downloadTool(downloadUrl, undefined, githubToken);
+        }
+        catch (error) {
+            const err = error;
+            if ((0, retry_1.isRetryableError)(err)) {
+                throw new retry_1.RetryableError(`Failed to download ruff binary: ${err.message}`, err);
+            }
+            else {
+                throw new retry_1.NonRetryableError(`Failed to download ruff binary: ${err.message}`, err);
+            }
+        }
+    }, { maxRetries: 3, timeoutMs: 60000 }, // 60 second timeout for downloads
+    "download ruff binary");
     core.debug(`Downloaded ruff to "${downloadPath}"`);
     await (0, checksum_1.validateChecksum)(checkSum, downloadPath, arch, platform, version);
     const extractedDir = await extractDownloadedArtifact(version, downloadPath, extension, platform, artifact);
@@ -31799,26 +31814,48 @@ async function resolveVersion(versionInput, githubToken) {
     return resolvedVersion;
 }
 async function getAvailableVersions(githubToken) {
-    try {
-        const octokit = new PaginatingOctokit({
-            auth: githubToken,
-        });
-        return await getReleaseTagNames(octokit);
-    }
-    catch (err) {
-        if (err.message.includes("Bad credentials")) {
-            core.info("No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.");
-            const octokit = new PaginatingOctokit();
+    return await (0, retry_1.withRetry)(async () => {
+        try {
+            const octokit = new PaginatingOctokit({
+                auth: githubToken,
+            });
             return await getReleaseTagNames(octokit);
         }
-        throw err;
-    }
+        catch (err) {
+            const error = err;
+            if (error.message.includes("Bad credentials")) {
+                core.info("No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.");
+                const octokit = new PaginatingOctokit();
+                return await getReleaseTagNames(octokit);
+            }
+            if ((0, retry_1.isRetryableError)(error)) {
+                throw new retry_1.RetryableError(`Failed to get available versions: ${error.message}`, error);
+            }
+            else {
+                throw new retry_1.NonRetryableError(`Failed to get available versions: ${error.message}`, error);
+            }
+        }
+    }, { maxRetries: 3, timeoutMs: 30000 }, // 30 second timeout for API calls
+    "get available versions");
 }
 async function getReleaseTagNames(octokit) {
-    const response = await octokit.paginate(octokit.rest.repos.listReleases, {
-        owner: constants_1.OWNER,
-        repo: constants_1.REPO,
-    });
+    const response = await (0, retry_1.withRetry)(async () => {
+        try {
+            return await octokit.paginate(octokit.rest.repos.listReleases, {
+                owner: constants_1.OWNER,
+                repo: constants_1.REPO,
+            });
+        }
+        catch (error) {
+            const err = error;
+            if ((0, retry_1.isRetryableError)(err)) {
+                throw new retry_1.RetryableError(`Failed to list GitHub releases: ${err.message}`, err);
+            }
+            else {
+                throw new retry_1.NonRetryableError(`Failed to list GitHub releases: ${err.message}`, err);
+            }
+        }
+    }, { maxRetries: 3, timeoutMs: 30000 }, "list GitHub releases");
     const releaseTagNames = response.map((release) => release.tag_name);
     if (releaseTagNames.length === 0) {
         throw Error("Github API request failed while getting releases. Check the GitHub status page for outages. Try again later.");
@@ -31826,35 +31863,56 @@ async function getReleaseTagNames(octokit) {
     return response.map((release) => release.tag_name);
 }
 async function getLatestVersion(githubToken) {
-    const octokit = new PaginatingOctokit({
-        auth: githubToken,
-    });
-    let latestRelease;
-    try {
-        latestRelease = await getLatestRelease(octokit);
-    }
-    catch (err) {
-        if (err.message.includes("Bad credentials")) {
-            core.info("No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.");
-            const octokit = new PaginatingOctokit();
+    return await (0, retry_1.withRetry)(async () => {
+        const octokit = new PaginatingOctokit({
+            auth: githubToken,
+        });
+        let latestRelease;
+        try {
             latestRelease = await getLatestRelease(octokit);
         }
-        else {
-            core.error("Github API request failed while getting latest release. Check the GitHub status page for outages. Try again later.");
-            throw err;
+        catch (err) {
+            const error = err;
+            if (error.message.includes("Bad credentials")) {
+                core.info("No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.");
+                const octokit = new PaginatingOctokit();
+                latestRelease = await getLatestRelease(octokit);
+            }
+            else {
+                core.error("Github API request failed while getting latest release. Check the GitHub status page for outages. Try again later.");
+                if ((0, retry_1.isRetryableError)(error)) {
+                    throw new retry_1.RetryableError(`Failed to get latest version: ${error.message}`, error);
+                }
+                else {
+                    throw new retry_1.NonRetryableError(`Failed to get latest version: ${error.message}`, error);
+                }
+            }
         }
-    }
-    if (!latestRelease) {
-        throw new Error("Could not determine latest release.");
-    }
-    return latestRelease.tag_name;
+        if (!latestRelease) {
+            throw new Error("Could not determine latest release.");
+        }
+        return latestRelease.tag_name;
+    }, { maxRetries: 3, timeoutMs: 30000 }, "get latest version");
 }
 async function getLatestRelease(octokit) {
-    const { data: latestRelease } = await octokit.rest.repos.getLatestRelease({
-        owner: constants_1.OWNER,
-        repo: constants_1.REPO,
-    });
-    return latestRelease;
+    return await (0, retry_1.withRetry)(async () => {
+        try {
+            const { data: latestRelease } = await octokit.rest.repos.getLatestRelease({
+                owner: constants_1.OWNER,
+                repo: constants_1.REPO,
+            });
+            return latestRelease;
+        }
+        catch (error) {
+            const err = error;
+            if ((0, retry_1.isRetryableError)(err)) {
+                throw new retry_1.RetryableError(`Failed to get latest release: ${err.message}`, err);
+            }
+            else {
+                throw new retry_1.NonRetryableError(`Failed to get latest release: ${err.message}`, err);
+            }
+        }
+    }, { maxRetries: 3, timeoutMs: 30000 }, "get latest release");
 }
 function maxSatisfying(versions, version) {
     const maxSemver = tc.evaluateVersions(versions, version);
@@ -32209,6 +32267,175 @@ function getRuffVersionFromRequirementsFile(filePath) {
         core.warning(`Error while parsing ${filePath}: ${message}`);
         return undefined;
     }
+}
+
+
+/***/ }),
+
+/***/ 5931:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.NonRetryableError = exports.RetryableError = exports.DEFAULT_RETRY_OPTIONS = void 0;
+exports.withRetry = withRetry;
+exports.withTimeout = withTimeout;
+exports.isRetryableError = isRetryableError;
+exports.wrapWithRetryLogic = wrapWithRetryLogic;
+const core = __importStar(__nccwpck_require__(7484));
+exports.DEFAULT_RETRY_OPTIONS = {
+    backoffMultiplier: 2,
+    initialDelayMs: 1000,
+    maxDelayMs: 10000,
+    maxRetries: 3,
+    timeoutMs: 30000, // 30 second timeout
+};
+class RetryableError extends Error {
+    cause;
+    constructor(message, cause) {
+        super(message);
+        this.cause = cause;
+        this.name = "RetryableError";
+    }
+}
+exports.RetryableError = RetryableError;
+class NonRetryableError extends Error {
+    cause;
+    constructor(message, cause) {
+        super(message);
+        this.cause = cause;
+        this.name = "NonRetryableError";
+    }
+}
+exports.NonRetryableError = NonRetryableError;
+async function withRetry(operation, options = {}, operationName = "operation") {
+    const opts = { ...exports.DEFAULT_RETRY_OPTIONS, ...options };
+    let lastError;
+    for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
+        try {
+            if (attempt > 0) {
+                const delay = Math.min(opts.initialDelayMs * opts.backoffMultiplier ** (attempt - 1), opts.maxDelayMs);
+                core.info(`Retrying ${operationName} (attempt ${attempt + 1}/${opts.maxRetries + 1}) after ${delay}ms delay...`);
+                await sleep(delay);
+            }
+            // Wrap operation with timeout if specified
+            if (opts.timeoutMs) {
+                return await withTimeout(operation(), opts.timeoutMs, operationName);
+            }
+            else {
+                return await operation();
+            }
+        }
+        catch (error) {
+            lastError = error;
+            // Don't retry on non-retryable errors
+            if (lastError instanceof NonRetryableError) {
+                core.debug(`Non-retryable error in ${operationName}: ${lastError.message}`);
+                throw lastError.cause || lastError;
+            }
+            // Log the error for debugging
+            core.debug(`Attempt ${attempt + 1} failed for ${operationName}: ${lastError.message}`);
+            // If this was the last attempt, throw the error
+            if (attempt === opts.maxRetries) {
+                core.error(`${operationName} failed after ${opts.maxRetries + 1} attempts. Last error: ${lastError.message}`);
+                throw lastError;
+            }
+        }
+    }
+    throw lastError || new Error(`${operationName} failed for unknown reason`);
+}
+async function withTimeout(promise, timeoutMs, operationName = "operation") {
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+            reject(new RetryableError(`${operationName} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+    });
+    return Promise.race([promise, timeoutPromise]);
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isRetryableError(error) {
+    const message = error.message.toLowerCase();
+    // Network-related errors that should be retried
+    const retryableMessages = [
+        "connect timeout",
+        "connection timeout",
+        "timeout",
+        "econnreset",
+        "econnrefused",
+        "enotfound",
+        "network error",
+        "request timeout",
+        "socket timeout",
+        "fetch failed",
+        "connect etimedout",
+    ];
+    // HTTP status codes that should be retried
+    const retryableStatusCodes = [408, 429, 500, 502, 503, 504];
+    // Check for retryable messages
+    if (retryableMessages.some((msg) => message.includes(msg))) {
+        return true;
+    }
+    // Check for HTTP status codes in error message
+    const statusMatch = message.match(/status.*?(\d{3})/);
+    if (statusMatch) {
+        const statusCode = parseInt(statusMatch[1], 10);
+        if (retryableStatusCodes.includes(statusCode)) {
+            return true;
+        }
+    }
+    return false;
+}
+function wrapWithRetryLogic(operation, operationName, options = {}) {
+    return async () => {
+        try {
+            return await withRetry(operation, options, operationName);
+        }
+        catch (error) {
+            const err = error;
+            if (isRetryableError(err)) {
+                throw new RetryableError(`${operationName} failed: ${err.message}`, err);
+            }
+            else {
+                throw new NonRetryableError(`${operationName} failed: ${err.message}`, err);
+            }
+        }
+    };
 }
 
 

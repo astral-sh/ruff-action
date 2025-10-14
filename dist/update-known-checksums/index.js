@@ -30846,6 +30846,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.updateChecksums = updateChecksums;
 const node_fs_1 = __nccwpck_require__(3024);
 const tc = __importStar(__nccwpck_require__(3472));
+const retry_1 = __nccwpck_require__(5931);
 const known_checksums_1 = __nccwpck_require__(2764);
 async function updateChecksums(filePath, downloadUrls) {
     await node_fs_1.promises.rm(filePath);
@@ -30895,8 +30896,21 @@ async function getOrDownloadChecksum(key, downloadUrl) {
     return checksum;
 }
 async function downloadAssetContent(downloadUrl) {
-    const downloadPath = await tc.downloadTool(downloadUrl);
-    return await node_fs_1.promises.readFile(downloadPath, "utf8");
+    return await (0, retry_1.withRetry)(async () => {
+        try {
+            const downloadPath = await tc.downloadTool(downloadUrl);
+            return await node_fs_1.promises.readFile(downloadPath, "utf8");
+        }
+        catch (error) {
+            const err = error;
+            if ((0, retry_1.isRetryableError)(err)) {
+                throw new retry_1.RetryableError(`Failed to download checksum file: ${err.message}`, err);
+            }
+            else {
+                throw new retry_1.NonRetryableError(`Failed to download checksum file: ${err.message}`, err);
+            }
+        }
+    }, { maxRetries: 3, timeoutMs: 30000 }, "download checksum file");
 }
 
 
@@ -30948,15 +30962,29 @@ const plugin_rest_endpoint_methods_1 = __nccwpck_require__(9210);
 const semver = __importStar(__nccwpck_require__(9318));
 const update_known_checksums_1 = __nccwpck_require__(6182);
 const constants_1 = __nccwpck_require__(6156);
+const retry_1 = __nccwpck_require__(5931);
 const PaginatingOctokit = core_1.Octokit.plugin(plugin_paginate_rest_1.paginateRest, plugin_rest_endpoint_methods_1.restEndpointMethods);
 async function run() {
     const checksumFilePath = process.argv.slice(2)[0];
     const github_token = process.argv.slice(2)[1];
-    const octokit = new PaginatingOctokit({ auth: github_token });
-    const response = await octokit.paginate(octokit.rest.repos.listReleases, {
-        owner: constants_1.OWNER,
-        repo: constants_1.REPO,
-    });
+    const response = await (0, retry_1.withRetry)(async () => {
+        try {
+            const octokit = new PaginatingOctokit({ auth: github_token });
+            return await octokit.paginate(octokit.rest.repos.listReleases, {
+                owner: constants_1.OWNER,
+                repo: constants_1.REPO,
+            });
+        }
+        catch (error) {
+            const err = error;
+            if ((0, retry_1.isRetryableError)(err)) {
+                throw new retry_1.RetryableError(`Failed to list releases for checksum update: ${err.message}`, err);
+            }
+            else {
+                throw new retry_1.NonRetryableError(`Failed to list releases for checksum update: ${err.message}`, err);
+            }
+        }
+    }, { maxRetries: 3, timeoutMs: 60000 }, "list releases for checksum update");
     const downloadUrls = response.flatMap((release) => release.assets
         .filter((asset) => asset.name.endsWith(".sha256"))
         .map((asset) => asset.browser_download_url));
@@ -30981,6 +31009,175 @@ exports.TOOL_CACHE_NAME = exports.OWNER = exports.REPO = void 0;
 exports.REPO = "ruff";
 exports.OWNER = "astral-sh";
 exports.TOOL_CACHE_NAME = "ruff";
+
+
+/***/ }),
+
+/***/ 5931:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.NonRetryableError = exports.RetryableError = exports.DEFAULT_RETRY_OPTIONS = void 0;
+exports.withRetry = withRetry;
+exports.withTimeout = withTimeout;
+exports.isRetryableError = isRetryableError;
+exports.wrapWithRetryLogic = wrapWithRetryLogic;
+const core = __importStar(__nccwpck_require__(7484));
+exports.DEFAULT_RETRY_OPTIONS = {
+    backoffMultiplier: 2,
+    initialDelayMs: 1000,
+    maxDelayMs: 10000,
+    maxRetries: 3,
+    timeoutMs: 30000, // 30 second timeout
+};
+class RetryableError extends Error {
+    cause;
+    constructor(message, cause) {
+        super(message);
+        this.cause = cause;
+        this.name = "RetryableError";
+    }
+}
+exports.RetryableError = RetryableError;
+class NonRetryableError extends Error {
+    cause;
+    constructor(message, cause) {
+        super(message);
+        this.cause = cause;
+        this.name = "NonRetryableError";
+    }
+}
+exports.NonRetryableError = NonRetryableError;
+async function withRetry(operation, options = {}, operationName = "operation") {
+    const opts = { ...exports.DEFAULT_RETRY_OPTIONS, ...options };
+    let lastError;
+    for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
+        try {
+            if (attempt > 0) {
+                const delay = Math.min(opts.initialDelayMs * opts.backoffMultiplier ** (attempt - 1), opts.maxDelayMs);
+                core.info(`Retrying ${operationName} (attempt ${attempt + 1}/${opts.maxRetries + 1}) after ${delay}ms delay...`);
+                await sleep(delay);
+            }
+            // Wrap operation with timeout if specified
+            if (opts.timeoutMs) {
+                return await withTimeout(operation(), opts.timeoutMs, operationName);
+            }
+            else {
+                return await operation();
+            }
+        }
+        catch (error) {
+            lastError = error;
+            // Don't retry on non-retryable errors
+            if (lastError instanceof NonRetryableError) {
+                core.debug(`Non-retryable error in ${operationName}: ${lastError.message}`);
+                throw lastError.cause || lastError;
+            }
+            // Log the error for debugging
+            core.debug(`Attempt ${attempt + 1} failed for ${operationName}: ${lastError.message}`);
+            // If this was the last attempt, throw the error
+            if (attempt === opts.maxRetries) {
+                core.error(`${operationName} failed after ${opts.maxRetries + 1} attempts. Last error: ${lastError.message}`);
+                throw lastError;
+            }
+        }
+    }
+    throw lastError || new Error(`${operationName} failed for unknown reason`);
+}
+async function withTimeout(promise, timeoutMs, operationName = "operation") {
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+            reject(new RetryableError(`${operationName} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+    });
+    return Promise.race([promise, timeoutPromise]);
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isRetryableError(error) {
+    const message = error.message.toLowerCase();
+    // Network-related errors that should be retried
+    const retryableMessages = [
+        "connect timeout",
+        "connection timeout",
+        "timeout",
+        "econnreset",
+        "econnrefused",
+        "enotfound",
+        "network error",
+        "request timeout",
+        "socket timeout",
+        "fetch failed",
+        "connect etimedout",
+    ];
+    // HTTP status codes that should be retried
+    const retryableStatusCodes = [408, 429, 500, 502, 503, 504];
+    // Check for retryable messages
+    if (retryableMessages.some((msg) => message.includes(msg))) {
+        return true;
+    }
+    // Check for HTTP status codes in error message
+    const statusMatch = message.match(/status.*?(\d{3})/);
+    if (statusMatch) {
+        const statusCode = parseInt(statusMatch[1], 10);
+        if (retryableStatusCodes.includes(statusCode)) {
+            return true;
+        }
+    }
+    return false;
+}
+function wrapWithRetryLogic(operation, operationName, options = {}) {
+    return async () => {
+        try {
+            return await withRetry(operation, options, operationName);
+        }
+        catch (error) {
+            const err = error;
+            if (isRetryableError(err)) {
+                throw new RetryableError(`${operationName} failed: ${err.message}`, err);
+            }
+            else {
+                throw new NonRetryableError(`${operationName} failed: ${err.message}`, err);
+            }
+        }
+    };
+}
 
 
 /***/ }),

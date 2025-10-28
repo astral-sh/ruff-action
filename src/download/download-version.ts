@@ -9,6 +9,12 @@ import * as pep440 from "@renovatebot/pep440";
 import * as semver from "semver";
 import { OWNER, REPO, TOOL_CACHE_NAME } from "../utils/constants";
 import type { Architecture, Platform } from "../utils/platforms";
+import {
+  isRetryableError,
+  NonRetryableError,
+  RetryableError,
+  withRetry,
+} from "../utils/retry";
 import { validateChecksum } from "./checksum/checksum";
 
 const PaginatingOctokit = Octokit.plugin(paginateRest, restEndpointMethods);
@@ -43,11 +49,29 @@ export async function downloadVersion(
   const downloadUrl = constructDownloadUrl(version, platform, arch);
   core.debug(`Downloading ruff from "${downloadUrl}" ...`);
 
-  const downloadPath = await tc.downloadTool(
-    downloadUrl,
-    undefined,
-    githubToken,
+  const downloadPath = await withRetry(
+    async () => {
+      try {
+        return await tc.downloadTool(downloadUrl, undefined, githubToken);
+      } catch (error) {
+        const err = error as Error;
+        if (isRetryableError(err)) {
+          throw new RetryableError(
+            `Failed to download ruff binary: ${err.message}`,
+            err,
+          );
+        } else {
+          throw new NonRetryableError(
+            `Failed to download ruff binary: ${err.message}`,
+            err,
+          );
+        }
+      }
+    },
+    { maxRetries: 3, timeoutMs: 60000 }, // 60 second timeout for downloads
+    "download ruff binary",
   );
+
   core.debug(`Downloaded ruff to "${downloadPath}"`);
   await validateChecksum(checkSum, downloadPath, arch, platform, version);
 
@@ -134,30 +158,70 @@ export async function resolveVersion(
 }
 
 async function getAvailableVersions(githubToken: string): Promise<string[]> {
-  try {
-    const octokit = new PaginatingOctokit({
-      auth: githubToken,
-    });
-    return await getReleaseTagNames(octokit);
-  } catch (err) {
-    if ((err as Error).message.includes("Bad credentials")) {
-      core.info(
-        "No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.",
-      );
-      const octokit = new PaginatingOctokit();
-      return await getReleaseTagNames(octokit);
-    }
-    throw err;
-  }
+  return await withRetry(
+    async () => {
+      try {
+        const octokit = new PaginatingOctokit({
+          auth: githubToken,
+        });
+        return await getReleaseTagNames(octokit);
+      } catch (err) {
+        const error = err as Error;
+        if (error.message.includes("Bad credentials")) {
+          core.info(
+            "No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.",
+          );
+          const octokit = new PaginatingOctokit();
+          return await getReleaseTagNames(octokit);
+        }
+
+        if (isRetryableError(error)) {
+          throw new RetryableError(
+            `Failed to get available versions: ${error.message}`,
+            error,
+          );
+        } else {
+          throw new NonRetryableError(
+            `Failed to get available versions: ${error.message}`,
+            error,
+          );
+        }
+      }
+    },
+    { maxRetries: 3, timeoutMs: 30000 }, // 30 second timeout for API calls
+    "get available versions",
+  );
 }
 
 async function getReleaseTagNames(
   octokit: InstanceType<typeof PaginatingOctokit>,
 ): Promise<string[]> {
-  const response = await octokit.paginate(octokit.rest.repos.listReleases, {
-    owner: OWNER,
-    repo: REPO,
-  });
+  const response = await withRetry(
+    async () => {
+      try {
+        return await octokit.paginate(octokit.rest.repos.listReleases, {
+          owner: OWNER,
+          repo: REPO,
+        });
+      } catch (error) {
+        const err = error as Error;
+        if (isRetryableError(err)) {
+          throw new RetryableError(
+            `Failed to list GitHub releases: ${err.message}`,
+            err,
+          );
+        } else {
+          throw new NonRetryableError(
+            `Failed to list GitHub releases: ${err.message}`,
+            err,
+          );
+        }
+      }
+    },
+    { maxRetries: 3, timeoutMs: 30000 },
+    "list GitHub releases",
+  );
+
   const releaseTagNames = response.map((release) => release.tag_name);
   if (releaseTagNames.length === 0) {
     throw Error(
@@ -168,42 +232,82 @@ async function getReleaseTagNames(
 }
 
 async function getLatestVersion(githubToken: string) {
-  const octokit = new PaginatingOctokit({
-    auth: githubToken,
-  });
+  return await withRetry(
+    async () => {
+      const octokit = new PaginatingOctokit({
+        auth: githubToken,
+      });
 
-  let latestRelease: { tag_name: string } | undefined;
-  try {
-    latestRelease = await getLatestRelease(octokit);
-  } catch (err) {
-    if ((err as Error).message.includes("Bad credentials")) {
-      core.info(
-        "No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.",
-      );
-      const octokit = new PaginatingOctokit();
-      latestRelease = await getLatestRelease(octokit);
-    } else {
-      core.error(
-        "Github API request failed while getting latest release. Check the GitHub status page for outages. Try again later.",
-      );
-      throw err;
-    }
-  }
+      let latestRelease: { tag_name: string } | undefined;
+      try {
+        latestRelease = await getLatestRelease(octokit);
+      } catch (err) {
+        const error = err as Error;
+        if (error.message.includes("Bad credentials")) {
+          core.info(
+            "No (valid) GitHub token provided. Falling back to anonymous. Requests might be rate limited.",
+          );
+          const octokit = new PaginatingOctokit();
+          latestRelease = await getLatestRelease(octokit);
+        } else {
+          core.error(
+            "Github API request failed while getting latest release. Check the GitHub status page for outages. Try again later.",
+          );
 
-  if (!latestRelease) {
-    throw new Error("Could not determine latest release.");
-  }
-  return latestRelease.tag_name;
+          if (isRetryableError(error)) {
+            throw new RetryableError(
+              `Failed to get latest version: ${error.message}`,
+              error,
+            );
+          } else {
+            throw new NonRetryableError(
+              `Failed to get latest version: ${error.message}`,
+              error,
+            );
+          }
+        }
+      }
+
+      if (!latestRelease) {
+        throw new Error("Could not determine latest release.");
+      }
+      return latestRelease.tag_name;
+    },
+    { maxRetries: 3, timeoutMs: 30000 },
+    "get latest version",
+  );
 }
 
 async function getLatestRelease(
   octokit: InstanceType<typeof PaginatingOctokit>,
 ) {
-  const { data: latestRelease } = await octokit.rest.repos.getLatestRelease({
-    owner: OWNER,
-    repo: REPO,
-  });
-  return latestRelease;
+  return await withRetry(
+    async () => {
+      try {
+        const { data: latestRelease } =
+          await octokit.rest.repos.getLatestRelease({
+            owner: OWNER,
+            repo: REPO,
+          });
+        return latestRelease;
+      } catch (error) {
+        const err = error as Error;
+        if (isRetryableError(err)) {
+          throw new RetryableError(
+            `Failed to get latest release: ${err.message}`,
+            err,
+          );
+        } else {
+          throw new NonRetryableError(
+            `Failed to get latest release: ${err.message}`,
+            err,
+          );
+        }
+      }
+    },
+    { maxRetries: 3, timeoutMs: 30000 },
+    "get latest release",
+  );
 }
 
 function maxSatisfying(

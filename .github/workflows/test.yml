@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: "20"
       - run: |
-          npm install
+          npm ci --ignore-scripts
       - run: |
           npm run all
       - name: Check all jobs are in all-tests-passed.needs

@@ -22,7 +22,7 @@ jobs:
         run:
           node dist/update-known-checksums/index.js
           src/download/checksum/known-checksums.ts ${{ secrets.GITHUB_TOKEN }}
-      - run: npm install && npm run all
+      - run: npm ci --ignore-scripts && npm run all
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412 # v7.0.9
         with:

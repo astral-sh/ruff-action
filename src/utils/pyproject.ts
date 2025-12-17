@@ -10,14 +10,12 @@ function getRuffVersionFromAllDependencies(
   );
 
   if (ruffVersionDefinition) {
-    const ruffVersion = ruffVersionDefinition
-      .match(/^ruff([^A-Z0-9._-]+.*)$/)?.[1]
-      .trim();
-    if (ruffVersion?.startsWith("==")) {
-      return ruffVersion.slice(2);
+    const match = ruffVersionDefinition.trim().match(/^ruff\s*==\s*([^\s\\]+)/);
+
+    if (match) {
+      core.info(`Found ruff version in requirements file: ${match[1]}`);
+      return match[1];
     }
-    core.info(`Found ruff version in pyproject.toml: ${ruffVersion}`);
-    return ruffVersion;
   }
 
   return undefined;

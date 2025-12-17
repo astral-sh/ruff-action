@@ -236,6 +236,25 @@ jobs:
           fi
         env:
           RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
+  test-default-version-from-requirements-with-hash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Use default version from requirements-with-hash.txt
+        id: ruff-action
+        uses: ./
+        with:
+          src: __tests__/fixtures/python-project
+          version-file: __tests__/fixtures/requirements-with-hash.txt
+      - name: Correct version gets installed
+        run: |
+          if [ "$RUFF_VERSION" != "0.9.0" ]; then
+            exit 1
+          fi
+        env:
+          RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
   test-semver-range:
     runs-on: ubuntu-latest
     steps:
@@ -383,6 +402,7 @@ jobs:
       - test-default-version-from-pyproject-poetry
       - test-default-version-from-pyproject-optional-dependencies
       - test-default-version-from-requirements
+      - test-default-version-from-requirements-with-hash
       - test-semver-range
       - test-pep440-version-specifier
       - test-checksum

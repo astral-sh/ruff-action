@@ -32346,20 +32346,54 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.findRuffVersionInSpec = findRuffVersionInSpec;
 exports.getRuffVersionFromRequirementsFile = getRuffVersionFromRequirementsFile;
 const fs = __importStar(__nccwpck_require__(3024));
 const core = __importStar(__nccwpck_require__(7484));
 const toml = __importStar(__nccwpck_require__(7106));
-function getRuffVersionFromAllDependencies(allDependencies) {
-    const ruffVersionDefinition = allDependencies.find((dep) => dep.startsWith("ruff"));
-    if (ruffVersionDefinition) {
-        const match = ruffVersionDefinition.trim().match(/^ruff\s*==\s*([^\s\\]+)/);
-        if (match) {
-            core.info(`Found ruff version in requirements file: ${match[1]}`);
-            return match[1];
+/**
+ * Find ruff version in a dependency specification.
+ * Only handles strings that start with "ruff" (e.g., "ruff==0.9.3").
+ * Returns undefined for non-ruff dependencies.
+ * Strips environment markers (everything after ';').
+ * Strips leading '==' from exact version specifiers (PEP 440) for downstream compatibility.
+ *
+ * @internal This is exported for testing purposes only.
+ */
+function findRuffVersionInSpec(spec) {
+    const trimmedSpec = spec.trim();
+    const fullDepMatch = trimmedSpec.match(/^ruff\s*(.+)$/);
+    let versionSpec;
+    if (fullDepMatch) {
+        versionSpec = fullDepMatch[1];
+    }
+    else {
+        return undefined;
+    }
+    // Strip trailing backslash (line continuation)
+    versionSpec = versionSpec.replace(/\\$/, "").trim();
+    // Strip environment markers (everything after ';')
+    const match = versionSpec.match(/^([^;]+)(?:;.*)?$/);
+    if (match) {
+        let version = match[1].trim();
+        if (version) {
+            // Strip leading '==' from exact version specifiers for compatibility with semver
+            if (version.startsWith("==")) {
+                version = version.slice(2);
+            }
+            if (trimmedSpec.includes(";")) {
+                core.warning("Environment markers are ignored. ruff is a standalone tool that works independently of Python version.");
+            }
+            core.info(`Found ruff version in requirements file: ${version}`);
+            return version;
         }
     }
     return undefined;
+}
+function getRuffVersionFromAllDependencies(allDependencies) {
+    return allDependencies
+        .map((dep) => findRuffVersionInSpec(dep))
+        .find((version) => version !== undefined);
 }
 function parsePyproject(pyprojectContent) {
     const pyproject = toml.parse(pyprojectContent);
@@ -32381,8 +32415,9 @@ function getRuffVersionFromPoetryGroups(pyproject) {
     return poetryGroups
         .flatMap((group) => Object.entries(group.dependencies))
         .map(([name, spec]) => {
-        if (name === "ruff" && typeof spec === "string")
-            return spec;
+        if (typeof spec === "string") {
+            return findRuffVersionInSpec(`${name} ${spec}`);
+        }
         return undefined;
     })
         .find((version) => version !== undefined);

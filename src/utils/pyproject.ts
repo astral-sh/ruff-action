@@ -2,23 +2,58 @@ import * as fs from "node:fs";
 import * as core from "@actions/core";
 import * as toml from "smol-toml";
 
-function getRuffVersionFromAllDependencies(
-  allDependencies: string[],
-): string | undefined {
-  const ruffVersionDefinition = allDependencies.find((dep: string) =>
-    dep.startsWith("ruff"),
-  );
+/**
+ * Find ruff version in a dependency specification.
+ * Only handles strings that start with "ruff" (e.g., "ruff==0.9.3").
+ * Returns undefined for non-ruff dependencies.
+ * Strips environment markers (everything after ';').
+ * Strips leading '==' from exact version specifiers (PEP 440) for downstream compatibility.
+ *
+ * @internal This is exported for testing purposes only.
+ */
+export function findRuffVersionInSpec(spec: string): string | undefined {
+  const trimmedSpec = spec.trim();
 
-  if (ruffVersionDefinition) {
-    const match = ruffVersionDefinition.trim().match(/^ruff\s*==\s*([^\s\\]+)/);
+  const fullDepMatch = trimmedSpec.match(/^ruff\s*(.+)$/);
+  let versionSpec: string;
+  if (fullDepMatch) {
+    versionSpec = fullDepMatch[1];
+  } else {
+    return undefined;
+  }
 
-    if (match) {
-      core.info(`Found ruff version in requirements file: ${match[1]}`);
-      return match[1];
+  // Strip trailing backslash (line continuation)
+  versionSpec = versionSpec.replace(/\\$/, "").trim();
+
+  // Strip environment markers (everything after ';')
+  const match = versionSpec.match(/^([^;]+)(?:;.*)?$/);
+
+  if (match) {
+    let version = match[1].trim();
+    if (version) {
+      // Strip leading '==' from exact version specifiers for compatibility with semver
+      if (version.startsWith("==")) {
+        version = version.slice(2);
+      }
+      if (trimmedSpec.includes(";")) {
+        core.warning(
+          "Environment markers are ignored. ruff is a standalone tool that works independently of Python version.",
+        );
+      }
+      core.info(`Found ruff version in requirements file: ${version}`);
+      return version;
     }
   }
 
   return undefined;
+}
+
+function getRuffVersionFromAllDependencies(
+  allDependencies: string[],
+): string | undefined {
+  return allDependencies
+    .map((dep) => findRuffVersionInSpec(dep))
+    .find((version) => version !== undefined);
 }
 
 interface Pyproject {
@@ -66,7 +101,9 @@ function getRuffVersionFromPoetryGroups(
   return poetryGroups
     .flatMap((group) => Object.entries(group.dependencies))
     .map(([name, spec]) => {
-      if (name === "ruff" && typeof spec === "string") return spec;
+      if (typeof spec === "string") {
+        return findRuffVersionInSpec(`${name} ${spec}`);
+      }
       return undefined;
     })
     .find((version) => version !== undefined);

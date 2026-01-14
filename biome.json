@@ -13,6 +13,7 @@
     "ignoreUnknown": false,
     "includes": [
       "**",
+      "!**/coverage",
       "!**/dist",
       "!**/lib",
       "!**/node_modules",

@@ -1,0 +1,15 @@
+[project]
+name = "pyproject-dependency-groups-with-env-marker"
+version = "0.1.0"
+description = "Test fixture for issue #256 - environment markers"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14 ; python_version >= '3.11'",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

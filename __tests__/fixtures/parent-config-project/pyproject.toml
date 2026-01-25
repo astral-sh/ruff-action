@@ -1,0 +1,13 @@
+[project]
+name = "parent-config-project"
+version = "0.1.0"
+description = "Test fixture for parent directory pyproject.toml search"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ruff==0.10.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

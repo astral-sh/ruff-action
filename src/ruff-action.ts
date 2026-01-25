@@ -1,4 +1,3 @@
-import * as fs from "node:fs";
 import * as path from "node:path";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
@@ -23,6 +22,7 @@ import {
   type Platform,
 } from "./utils/platforms";
 import { getRuffVersionFromRequirementsFile } from "./utils/pyproject";
+import { findPyprojectToml } from "./utils/pyproject-finder";
 
 async function run(): Promise<void> {
   const platform = getPlatform();
@@ -107,9 +107,12 @@ async function determineVersion(): Promise<string> {
     }
     return await resolveVersion(versionFromPyproject || "latest", githubToken);
   }
-  const pyProjectPath = path.join(src, "pyproject.toml");
-  if (!fs.existsSync(pyProjectPath)) {
-    core.info(`Could not find ${pyProjectPath}. Using latest version.`);
+  const pyProjectPath = findPyprojectToml(
+    src,
+    process.env.GITHUB_WORKSPACE || ".",
+  );
+  if (!pyProjectPath) {
+    core.info(`Could not find pyproject.toml. Using latest version.`);
     return await resolveVersion("latest", githubToken);
   }
   const versionFromPyproject =

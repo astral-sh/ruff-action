@@ -32110,7 +32110,6 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const fs = __importStar(__nccwpck_require__(3024));
 const path = __importStar(__nccwpck_require__(6760));
 const core = __importStar(__nccwpck_require__(7484));
 const exec = __importStar(__nccwpck_require__(5236));
@@ -32119,6 +32118,7 @@ const download_version_1 = __nccwpck_require__(8255);
 const inputs_1 = __nccwpck_require__(9612);
 const platforms_1 = __nccwpck_require__(8361);
 const pyproject_1 = __nccwpck_require__(3929);
+const pyproject_finder_1 = __nccwpck_require__(6346);
 async function run() {
     const platform = (0, platforms_1.getPlatform)();
     const arch = (0, platforms_1.getArch)();
@@ -32175,9 +32175,9 @@ async function determineVersion() {
         }
         return await (0, download_version_1.resolveVersion)(versionFromPyproject || "latest", inputs_1.githubToken);
     }
-    const pyProjectPath = path.join(inputs_1.src, "pyproject.toml");
-    if (!fs.existsSync(pyProjectPath)) {
-        core.info(`Could not find ${pyProjectPath}. Using latest version.`);
+    const pyProjectPath = (0, pyproject_finder_1.findPyprojectToml)(inputs_1.src, process.env.GITHUB_WORKSPACE || ".");
+    if (!pyProjectPath) {
+        core.info(`Could not find pyproject.toml. Using latest version.`);
         return await (0, download_version_1.resolveVersion)("latest", inputs_1.githubToken);
     }
     const versionFromPyproject = (0, pyproject_1.getRuffVersionFromRequirementsFile)(pyProjectPath);
@@ -32301,6 +32301,110 @@ function getPlatform() {
     };
     if (platform in platformMapping) {
         return platformMapping[platform];
+    }
+}
+
+
+/***/ }),
+
+/***/ 6346:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.findPyprojectToml = findPyprojectToml;
+const fs = __importStar(__nccwpck_require__(3024));
+const path = __importStar(__nccwpck_require__(6760));
+const core = __importStar(__nccwpck_require__(7484));
+/**
+ * Search for a pyproject.toml file starting from the given directory
+ * and traversing upwards through parent directories until reaching
+ * the GitHub workspace root.
+ *
+ * @param startDir The directory to start the search from (e.g., the src input)
+ * @param workspaceRoot The GitHub workspace directory (GITHUB_WORKSPACE)
+ * @returns The path to the found pyproject.toml, or undefined if not found
+ */
+function findPyprojectToml(startDir, workspaceRoot) {
+    let currentDir = path.resolve(startDir);
+    const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
+    while (true) {
+        const pyprojectPath = path.join(currentDir, "pyproject.toml");
+        core.debug(`Checking for ${pyprojectPath}`);
+        if (fs.existsSync(pyprojectPath)) {
+            core.info(`Found pyproject.toml at ${pyprojectPath}`);
+            return pyprojectPath;
+        }
+        // Check if we've reached the workspace root
+        if (currentDir === resolvedWorkspaceRoot) {
+            // If we're at workspace root and didn't find it, stop searching
+            break;
+        }
+        // Move up to parent directory
+        const parentDir = path.dirname(currentDir);
+        // If parent is the same as current, we've reached the filesystem root
+        if (parentDir === currentDir) {
+            break;
+        }
+        currentDir = parentDir;
+        // If we've gone past the workspace root, stop searching
+        if (isPathWithinWorkspace(currentDir, resolvedWorkspaceRoot) === false) {
+            break;
+        }
+    }
+    return undefined;
+}
+/**
+ * Check if a given path is within or equal to the workspace root.
+ *
+ * @param checkPath The path to check
+ * @param workspaceRoot The workspace root directory
+ * @returns true if within or equal to workspace, false if outside, undefined if can't determine
+ */
+function isPathWithinWorkspace(checkPath, workspaceRoot) {
+    try {
+        const checkPathResolved = path.resolve(checkPath);
+        const workspaceRootResolved = path.resolve(workspaceRoot);
+        // Check if checkPath starts with workspaceRoot (case-insensitive on Windows)
+        const relativePath = path.relative(workspaceRootResolved, checkPathResolved);
+        return !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
+    }
+    catch {
+        return undefined;
     }
 }
 

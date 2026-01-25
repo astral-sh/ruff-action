@@ -117,7 +117,7 @@ jobs:
           src: __tests__/fixtures/python-project
       - name: Correct version gets installed
         run: |
-          if [ "$RUFF_VERSION" != "0.6.2" ]; then
+          if [ "$RUFF_VERSION" != "0.14.11" ]; then
             exit 1
           fi
         env:

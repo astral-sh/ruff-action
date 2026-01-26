@@ -33,22 +33,23 @@ describe("findPyprojectToml", () => {
 
   describe("when pyproject.toml exists only in parent directory", () => {
     it("should search upwards and find the parent's pyproject.toml", () => {
-      // python-project doesn't have a pyproject.toml, but its parent (fixtures) does
-      const pythonProjectDir = path.join(
+      // subproject doesn't have a pyproject.toml, but its parent (parent-config-project) does
+      const subprojectDir = path.join(
         __dirname,
         "..",
         "..",
         "__tests__",
         "fixtures",
-        "python-project",
+        "parent-config-project",
+        "subproject",
       );
       const workspaceRoot = path.join(__dirname, "..", "..");
 
-      const result = findPyprojectToml(pythonProjectDir, workspaceRoot);
+      const result = findPyprojectToml(subprojectDir, workspaceRoot);
 
       expect(result).toBeTruthy();
       expect(result).toContain("pyproject.toml");
-      expect(result).toContain("fixtures");
+      expect(result).toContain("parent-config-project");
       expect(core.info).toHaveBeenCalled();
     });
   });
@@ -75,14 +76,16 @@ describe("findPyprojectToml", () => {
     });
 
     it("should find pyproject.toml when it exists at workspace root", () => {
-      // Use fixtures as the "workspace root" for this test
-      const utilsDir = path.join(
+      // Use parent-config-project as the "workspace root" for this test
+      // Start from subproject (which has no pyproject.toml) to search up to workspace root
+      const subprojectDir = path.join(
         __dirname,
         "..",
         "..",
         "__tests__",
         "fixtures",
-        "python-project",
+        "parent-config-project",
+        "subproject",
       );
       const workspaceRoot = path.join(
         __dirname,
@@ -90,13 +93,14 @@ describe("findPyprojectToml", () => {
         "..",
         "__tests__",
         "fixtures",
+        "parent-config-project",
       );
 
-      const result = findPyprojectToml(utilsDir, workspaceRoot);
+      const result = findPyprojectToml(subprojectDir, workspaceRoot);
 
       expect(result).toBeTruthy();
       expect(result).toContain("pyproject.toml");
-      expect(result).toContain("fixtures");
+      expect(result).toContain("parent-config-project");
     });
 
     it("should stop at workspace root even if searching from it", () => {

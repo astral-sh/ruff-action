@@ -5,7 +5,7 @@ description = "Test fixture for parent directory pyproject.toml search"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ruff==0.10.1",
+    "ruff==0.10.0",
 ]
 
 [build-system]

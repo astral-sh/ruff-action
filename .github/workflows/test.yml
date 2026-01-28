@@ -406,6 +406,25 @@ jobs:
           src: >-
             __tests__/fixtures/python-project/src/python_project/__init__.py
             __tests__/fixtures/python-project/src/python_project/hello_world.py
+  test-parent-directory-pyproject:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Use version from parent directory pyproject.toml
+        id: ruff-action
+        uses: ./
+        with:
+          src: __tests__/fixtures/parent-config-project/subproject
+      - name: Correct version gets installed
+        run: |
+          if [ "$RUFF_VERSION" != "0.10.0" ]; then
+            echo "Expected version 0.10.0 but got $RUFF_VERSION"
+            exit 1
+          fi
+        env:
+          RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
 
   all-tests-passed:
     runs-on: ubuntu-latest
@@ -431,6 +450,7 @@ jobs:
       - test-args
       - test-failure
       - test-multiple-src
+      - test-parent-directory-pyproject
     if: always()
     steps:
       - name: All tests passed

@@ -33,14 +33,14 @@
     "@octokit/plugin-paginate-rest": "^13.1.1",
     "@octokit/plugin-rest-endpoint-methods": "^16.0.0",
     "@renovatebot/pep440": "^4.2.1",
-    "smol-toml": "^1.4.1"
+    "smol-toml": "^1.6.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.4",
+    "@biomejs/biome": "2.3.2",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^24.2.1",
-    "@types/semver": "^7.7.0",
+    "@types/node": "^24.10.9",
+    "@types/semver": "^7.7.1",
     "@vercel/ncc": "^0.38.3",
     "jest": "^29.7.0",
     "js-yaml": "^4.1.0",

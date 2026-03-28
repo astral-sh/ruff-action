@@ -25,7 +25,7 @@ jobs:
         uses: eifinger/actionlint-action@447fbfe7533062b7a9ea55f790f2396fba6d052a  # v1.10.0
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version-file: .nvmrc
           cache: npm

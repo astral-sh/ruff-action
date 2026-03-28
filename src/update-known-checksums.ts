@@ -10,9 +10,9 @@ const PaginatingOctokit = Octokit.plugin(paginateRest, restEndpointMethods);
 
 async function run(): Promise<void> {
   const checksumFilePath = process.argv.slice(2)[0];
-  const github_token = process.argv.slice(2)[1];
+  const githubToken = process.argv.slice(2)[1];
 
-  const octokit = new PaginatingOctokit({ auth: github_token });
+  const octokit = new PaginatingOctokit({ auth: githubToken });
 
   const response = await octokit.paginate(octokit.rest.repos.listReleases, {
     owner: OWNER,

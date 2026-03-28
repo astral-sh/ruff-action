@@ -26,30 +26,20 @@ export function findPyprojectToml(
       core.info(`Found pyproject.toml at ${pyprojectPath}`);
       return pyprojectPath;
     }
-
-    // Check if we've reached the workspace root
     if (currentDir === resolvedWorkspaceRoot) {
-      // If we're at workspace root and didn't find it, stop searching
-      break;
+      return undefined;
     }
 
-    // Move up to parent directory
     const parentDir = path.dirname(currentDir);
-
-    // If parent is the same as current, we've reached the filesystem root
-    if (parentDir === currentDir) {
-      break;
+    if (
+      parentDir === currentDir ||
+      !isPathWithinWorkspace(parentDir, resolvedWorkspaceRoot)
+    ) {
+      return undefined;
     }
 
     currentDir = parentDir;
-
-    // If we've gone past the workspace root, stop searching
-    if (isPathWithinWorkspace(currentDir, resolvedWorkspaceRoot) === false) {
-      break;
-    }
   }
-
-  return undefined;
 }
 
 /**
@@ -62,18 +52,7 @@ export function findPyprojectToml(
 function isPathWithinWorkspace(
   checkPath: string,
   workspaceRoot: string,
-): boolean | undefined {
-  try {
-    const checkPathResolved = path.resolve(checkPath);
-    const workspaceRootResolved = path.resolve(workspaceRoot);
-
-    // Check if checkPath starts with workspaceRoot (case-insensitive on Windows)
-    const relativePath = path.relative(
-      workspaceRootResolved,
-      checkPathResolved,
-    );
-    return !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
-  } catch {
-    return undefined;
-  }
+): boolean {
+  const relativePath = path.relative(workspaceRoot, checkPath);
+  return !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
 }

@@ -136,14 +136,15 @@ function setOutputFormat() {
 }
 
 function addMatchers(): void {
-  const matchersPath = path.join(
-    __dirname,
-    `..${path.sep}..`,
-    ".github",
-    "matchers",
-  );
+  const actionRoot = getActionRoot();
+  const matchersPath = path.join(actionRoot, ".github", "matchers");
   core.info(`##[add-matcher]${path.join(matchersPath, "check.json")}`);
   core.info(`##[add-matcher]${path.join(matchersPath, "format.json")}`);
+}
+
+function getActionRoot(): string {
+  const entrypoint = process.argv[1] ?? process.cwd();
+  return path.resolve(path.dirname(entrypoint), "..", "..");
 }
 
 async function runRuff(

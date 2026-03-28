@@ -16,11 +16,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: "20"
+          node-version-file: .nvmrc
+          cache: npm
       - name: Update known checksums
         id: update-known-checksums
         run:
-          node dist/update-known-checksums/index.js
+          node dist/update-known-checksums/index.cjs
           src/download/checksum/known-checksums.ts ${{ secrets.GITHUB_TOKEN }}
       - run: npm ci --ignore-scripts && npm run all
       - name: Create Pull Request

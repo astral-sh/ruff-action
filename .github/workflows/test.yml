@@ -27,14 +27,15 @@ jobs:
         uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: "20"
+          node-version-file: .nvmrc
+          cache: npm
       - run: |
           npm ci --ignore-scripts
       - run: |
           npm run all
       - name: Check all jobs are in all-tests-passed.needs
         run: |
-          tsc check-all-tests-passed-needs.ts
+          tsc --module nodenext --moduleResolution nodenext --target es2022 check-all-tests-passed-needs.ts
           node check-all-tests-passed-needs.js
         working-directory: .github/scripts
       - name: Make sure no changes from linters are detected

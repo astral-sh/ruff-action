@@ -2,16 +2,18 @@
   "name": "ruff-action",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "A GitHub Action to run Ruff, an extremely fast Python linter and code formatter.",
-  "main": "dist/ruff-action/index.js",
+  "main": "dist/ruff-action/index.cjs",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit",
     "check": "biome check --write",
-    "package": "ncc build -o dist/ruff-action src/ruff-action.ts && ncc build -o dist/update-known-checksums src/update-known-checksums.ts",
+    "package": "node scripts/build-dist.mjs",
     "act": "act pull_request -W .github/workflows/test.yml --container-architecture linux/amd64 -s GITHUB_TOKEN=\"$(gh auth token)\"",
-    "update-known-checksums": "RUNNER_TEMP=known_checksums node dist/update-known-checksums/index.js src/download/checksum/known-checksums.ts \"$(gh auth token)\"",
-    "test": "jest",
-    "all": "npm ci --ignore-scripts && npm run build && npm run check && npm run test && npm run package"
+    "update-known-checksums": "RUNNER_TEMP=known_checksums node dist/update-known-checksums/index.cjs src/download/checksum/known-checksums.ts \"$(gh auth token)\"",
+    "test:unit": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test": "npm run build && npm run test:unit",
+    "all": "npm run build && npm run check && npm run package && npm run test:unit"
   },
   "repository": {
     "type": "git",
@@ -26,9 +28,9 @@
   "author": "@eifinger",
   "license": "Apache-2.0",
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/exec": "^1.1.1",
-    "@actions/tool-cache": "^2.0.2",
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
+    "@actions/tool-cache": "^4.0.0",
     "@octokit/core": "^7.0.3",
     "@octokit/plugin-paginate-rest": "^13.1.1",
     "@octokit/plugin-rest-endpoint-methods": "^16.0.0",
@@ -36,15 +38,15 @@
     "smol-toml": "^1.6.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.2",
+    "@biomejs/biome": "^2.4.7",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^24.10.9",
+    "@types/node": "^25.5.0",
     "@types/semver": "^7.7.1",
-    "@vercel/ncc": "^0.38.3",
-    "jest": "^29.7.0",
-    "js-yaml": "^4.1.0",
-    "ts-jest": "^29.2.5",
-    "typescript": "^5.9.2"
+    "esbuild": "^0.27.4",
+    "jest": "^30.3.0",
+    "js-yaml": "^4.1.1",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
   }
 }

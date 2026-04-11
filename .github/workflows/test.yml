@@ -431,6 +431,31 @@ jobs:
         env:
           RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
 
+  test-custom-manifest-file:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Create test src
+        run: |
+          mkdir -p "${{ runner.temp }}/ruff-manifest-test"
+          printf 'print("hello")\n' > "${{ runner.temp }}/ruff-manifest-test/hello.py"
+      - name: Install from custom manifest file
+        id: ruff-action
+        uses: ./
+        with:
+          src: ${{ runner.temp }}/ruff-manifest-test
+          manifest-file: "https://raw.githubusercontent.com/astral-sh/ruff-action/${{ github.ref }}/__tests__/download/custom-manifest.ndjson"
+      - name: Correct version gets installed
+        run: |
+          if [ "$RUFF_VERSION" != "0.15.10" ]; then
+            echo "Wrong ruff version: $RUFF_VERSION"
+            exit 1
+          fi
+        env:
+          RUFF_VERSION: ${{ steps.ruff-action.outputs.ruff-version }}
+
   all-tests-passed:
     runs-on: ubuntu-latest
     needs:
@@ -456,6 +481,7 @@ jobs:
       - test-failure
       - test-multiple-src
       - test-parent-directory-pyproject
+      - test-custom-manifest-file
     if: always()
     steps:
       - name: All tests passed

@@ -20,10 +20,12 @@ inputs:
   checksum:
     description: "The checksum of the ruff version to install"
     required: false
+  manifest-file:
+    description: "URL to a custom manifest file in the astral-sh/versions format."
+    required: false
   github-token:
     description:
-      "Used to increase the rate limit when retrieving versions and downloading
-      ruff."
+      "Used for authenticated downloads of Ruff release artifacts from GitHub."
     required: false
     default: ${{ github.token }}
 outputs:

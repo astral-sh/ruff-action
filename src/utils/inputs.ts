@@ -6,3 +6,4 @@ export const githubToken = core.getInput("github-token");
 export const args = core.getInput("args");
 export const src = core.getInput("src");
 export const versionFile = core.getInput("version-file");
+export const manifestFile = core.getInput("manifest-file");

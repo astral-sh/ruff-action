@@ -11,6 +11,7 @@ import {
   args,
   checkSum,
   githubToken,
+  manifestFile,
   src,
   version,
   versionFile as versionFileInput,
@@ -62,6 +63,7 @@ async function setupRuff(
   githubToken: string,
 ): Promise<{ ruffDir: string; version: string }> {
   const resolvedVersion = await determineVersion();
+  const manifestUrl = manifestFile || undefined;
   if (semver.lt(resolvedVersion, "v0.0.247")) {
     throw Error(
       "This action does not support ruff versions older than 0.0.247",
@@ -82,6 +84,7 @@ async function setupRuff(
     resolvedVersion,
     checkSum,
     githubToken,
+    manifestUrl,
   );
 
   return {
@@ -95,7 +98,7 @@ async function determineVersion(): Promise<string> {
     throw Error("It is not allowed to specify both version and version-file");
   }
   if (version !== "") {
-    return await resolveVersion(version, githubToken);
+    return await resolveVersion(version, manifestFile || undefined);
   }
   if (versionFileInput !== "") {
     const versionFromPyproject =
@@ -105,7 +108,10 @@ async function determineVersion(): Promise<string> {
         `Could not parse version from ${versionFileInput}. Using latest version.`,
       );
     }
-    return await resolveVersion(versionFromPyproject || "latest", githubToken);
+    return await resolveVersion(
+      versionFromPyproject || "latest",
+      manifestFile || undefined,
+    );
   }
   const pyProjectPath = findPyprojectToml(
     src,
@@ -113,7 +119,7 @@ async function determineVersion(): Promise<string> {
   );
   if (!pyProjectPath) {
     core.info(`Could not find pyproject.toml. Using latest version.`);
-    return await resolveVersion("latest", githubToken);
+    return await resolveVersion("latest", manifestFile || undefined);
   }
   const versionFromPyproject =
     getRuffVersionFromRequirementsFile(pyProjectPath);
@@ -122,7 +128,10 @@ async function determineVersion(): Promise<string> {
       `Could not parse version from ${pyProjectPath}. Using latest version.`,
     );
   }
-  return await resolveVersion(versionFromPyproject || "latest", githubToken);
+  return await resolveVersion(
+    versionFromPyproject || "latest",
+    manifestFile || undefined,
+  );
 }
 
 function addRuffToPath(cachedPath: string): void {

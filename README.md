@@ -20,20 +20,25 @@ anything `ruff` can (ex, fix).
     - [Install a specific version](#install-a-specific-version)
     - [Install a version by supplying a semver range or pep440 specifier](#install-a-version-by-supplying-a-semver-range-or-pep440-specifier)
     - [Install a version from a specified version file](#install-a-version-from-a-specified-version-file)
+    - [Install using a custom manifest URL](#install-using-a-custom-manifest-url)
   - [Validate checksum](#validate-checksum)
   - [GitHub authentication token](#github-authentication-token)
 - [Outputs](#outputs)
 
 ## Usage
 
-| Input          | Description                                                                                                                                | Default            |
-|----------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
-| `version`      | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | `latest`           |
-| `version-file` | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
-| `args`         | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
-| `src`          | The directory or single files to run `ruff` on.                                                                                            | [github.workspace] |
-| `checksum`     | The sha256 checksum of the downloaded executable.                                                                                          | None               |
-| `github-token` | The GitHub token to use for authentication.                                                                                                | `GITHUB_TOKEN`     |
+| Input           | Description                                                                                                                                | Default            |
+|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
+| `version`       | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | `latest`           |
+| `version-file`  | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
+| `manifest-file` | URL to a custom Ruff manifest in the `astral-sh/versions` format.                                                                          | None               |
+| `args`          | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
+| `src`           | The directory or single files to run `ruff` on.                                                                                            | [github.workspace] |
+| `checksum`      | The sha256 checksum of the downloaded artifact.                                                                                            | None               |
+| `github-token`  | The GitHub token to use when downloading Ruff release artifacts from GitHub.                                                               | `GITHUB_TOKEN`     |
+
+By default, Ruff version metadata is resolved from the
+[`astral-sh/versions` Ruff manifest](https://github.com/astral-sh/versions/blob/main/v1/ruff.ndjson).
 
 ### Basic
 
@@ -155,6 +160,19 @@ Currently `pyproject.toml` and `requirements.txt` are supported.
     version-file: "my-path/to/pyproject.toml-or-requirements.txt"
 ```
 
+#### Install using a custom manifest URL
+
+You can override the default `astral-sh/versions` manifest with `manifest-file`.
+This affects both version resolution and artifact selection.
+
+```yaml
+- name: Install Ruff from a custom manifest
+  uses: astral-sh/ruff-action@v3
+  with:
+    version: "latest"
+    manifest-file: "https://example.com/ruff.ndjson"
+```
+
 ### Validate checksum
 
 You can specify a checksum to validate the downloaded executable. Checksums up to the default version
@@ -171,9 +189,11 @@ are automatically verified by this action. The sha256 hashes can be found on the
 
 ### GitHub authentication token
 
-This action uses the GitHub API to fetch the ruff release artifacts. To avoid hitting the GitHub API
-rate limit too quickly, an authentication token can be provided via the `github-token` input. By
-default, the `GITHUB_TOKEN` secret is used, which is automatically provided by GitHub Actions.
+By default, this action resolves available uv versions from
+[`astral-sh/versions`](https://github.com/astral-sh/versions) and downloads release artifacts from `https://releases.astral.sh`. If this fails this action falls back to downloading from the GitHub releases page of the ruff repository.
+
+You can provide a token via `github-token` to authenticate those downloads. By default, the
+`GITHUB_TOKEN` secret is used, which is automatically provided by GitHub Actions.
 
 If the default
 [permissions for the GitHub token](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#permissions-for-the-github_token)

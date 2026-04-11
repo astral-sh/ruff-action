@@ -1,0 +1,1 @@
+{"version":"0.15.10","artifacts":[{"platform":"x86_64-unknown-linux-gnu","variant":"default","url":"https://github.com/astral-sh/ruff/releases/download/0.15.10/ruff-x86_64-unknown-linux-gnu.tar.gz","archive_format":"tar.gz","sha256":"e3e9e5c791542f00d95edc74a506e1ac24efc0af9574de01ab338187bf1ff9f6"}]}

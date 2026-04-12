@@ -24746,7 +24746,6 @@ function _getGlobal(key, defaultValue) {
 }
 
 // src/download/download-version.ts
-var pep440 = __toESM(require_pep440(), 1);
 var semver3 = __toESM(require_semver(), 1);
 
 // src/utils/constants.ts
@@ -28104,24 +28103,6 @@ async function extractDownloadedArtifact(version2, downloadPath, extension, plat
   debug(`Contents of ${ruffDir}: ${files.join(", ")}`);
   return ruffDir;
 }
-async function resolveVersion(versionInput, manifestUrl) {
-  debug(`Resolving ${versionInput}...`);
-  const version2 = versionInput === "latest" ? await getLatestVersion(manifestUrl) : versionInput;
-  if (isExplicitVersion(version2)) {
-    debug(`Version ${version2} is an explicit version.`);
-    return version2;
-  }
-  const availableVersions = await getAvailableVersions(manifestUrl);
-  const resolvedVersion = maxSatisfying2(availableVersions, version2);
-  if (resolvedVersion === void 0) {
-    throw new Error(`No version found for ${version2}`);
-  }
-  debug(`Resolved version: ${resolvedVersion}`);
-  return resolvedVersion;
-}
-async function getAvailableVersions(manifestUrl) {
-  return await getAllVersions(manifestUrl);
-}
 function getMissingArtifactMessage(version2, arch3, platform2, manifestUrl) {
   if (manifestUrl === void 0) {
     return `Could not find artifact for version ${version2}, arch ${arch3}, platform ${platform2} in ${VERSIONS_MANIFEST_URL} .`;
@@ -28146,21 +28127,6 @@ function stripVersionPrefix2(version2) {
 }
 function getExtension(platform2) {
   return platform2 === "pc-windows-msvc" ? ".zip" : ".tar.gz";
-}
-function maxSatisfying2(versions, version2) {
-  const maxSemver = evaluateVersions(versions, version2);
-  if (maxSemver !== "") {
-    debug(`Found a version that satisfies the semver range: ${maxSemver}`);
-    return maxSemver;
-  }
-  const maxPep440 = pep440.maxSatisfying(versions, version2);
-  if (maxPep440 !== null) {
-    debug(
-      `Found a version that satisfies the pep440 specifier: ${maxPep440}`
-    );
-    return maxPep440;
-  }
-  return void 0;
 }
 
 // src/utils/inputs.ts
@@ -28196,8 +28162,71 @@ function getPlatform() {
   }
 }
 
-// src/utils/pyproject.ts
+// src/version/resolve.ts
+var pep440 = __toESM(require_pep440(), 1);
+
+// src/version/specifier.ts
+function normalizeVersionSpecifier(specifier) {
+  const trimmedSpecifier = specifier.trim();
+  if (trimmedSpecifier.startsWith("==")) {
+    return trimmedSpecifier.slice(2);
+  }
+  return trimmedSpecifier;
+}
+function parseVersionSpecifier(specifier) {
+  const raw = specifier.trim();
+  const normalized = normalizeVersionSpecifier(raw);
+  if (normalized === "latest") {
+    return {
+      kind: "latest",
+      normalized: "latest",
+      raw
+    };
+  }
+  if (isExplicitVersion(normalized)) {
+    return {
+      kind: "exact",
+      normalized,
+      raw
+    };
+  }
+  return {
+    kind: "range",
+    normalized,
+    raw
+  };
+}
+
+// src/utils/pyproject-finder.ts
 var fs6 = __toESM(require("node:fs"), 1);
+var path7 = __toESM(require("node:path"), 1);
+function findPyprojectToml(startDir, workspaceRoot) {
+  let currentDir = path7.resolve(startDir);
+  const resolvedWorkspaceRoot = path7.resolve(workspaceRoot);
+  while (true) {
+    const pyprojectPath = path7.join(currentDir, "pyproject.toml");
+    debug(`Checking for ${pyprojectPath}`);
+    if (fs6.existsSync(pyprojectPath)) {
+      info(`Found pyproject.toml at ${pyprojectPath}`);
+      return pyprojectPath;
+    }
+    if (currentDir === resolvedWorkspaceRoot) {
+      return void 0;
+    }
+    const parentDir = path7.dirname(currentDir);
+    if (parentDir === currentDir || !isPathWithinWorkspace(parentDir, resolvedWorkspaceRoot)) {
+      return void 0;
+    }
+    currentDir = parentDir;
+  }
+}
+function isPathWithinWorkspace(checkPath, workspaceRoot) {
+  const relativePath = path7.relative(workspaceRoot, checkPath);
+  return !relativePath.startsWith("..") && !path7.isAbsolute(relativePath);
+}
+
+// src/version/file-parser.ts
+var import_node_fs2 = __toESM(require("node:fs"), 1);
 
 // node_modules/smol-toml/dist/error.js
 function getLineColFromPtr(string, ptr) {
@@ -28889,14 +28918,60 @@ function parse(toml, { maxDepth = 1e3, integersAsBigInt } = {}) {
   return res;
 }
 
-// src/utils/pyproject.ts
+// src/version/file-parser.ts
+var VERSION_FILE_PARSERS = [
+  {
+    format: "pyproject.toml",
+    parse: (filePath) => {
+      const fileContent = import_node_fs2.default.readFileSync(filePath, "utf-8");
+      return getRuffVersionFromPyprojectContent(fileContent);
+    },
+    supports: (filePath) => filePath.endsWith("pyproject.toml")
+  },
+  {
+    format: "requirements",
+    parse: (filePath) => {
+      const fileContent = import_node_fs2.default.readFileSync(filePath, "utf-8");
+      return getRuffVersionFromRequirementsText(fileContent);
+    },
+    supports: (filePath) => filePath.endsWith(".txt")
+  }
+];
+function getParsedVersionFile(filePath) {
+  info(`Trying to find version for ruff in: ${filePath}`);
+  if (!import_node_fs2.default.existsSync(filePath)) {
+    warning(`Could not find file: ${filePath}`);
+    return void 0;
+  }
+  const parser = getVersionFileParser(filePath);
+  if (parser === void 0) {
+    return void 0;
+  }
+  try {
+    const specifier = parser.parse(filePath);
+    if (specifier === void 0) {
+      return void 0;
+    }
+    const normalizedSpecifier = normalizeVersionSpecifier(specifier);
+    info(`Found version for ruff in ${filePath}: ${normalizedSpecifier}`);
+    return {
+      format: parser.format,
+      specifier: normalizedSpecifier
+    };
+  } catch (error2) {
+    warning(
+      `Error while parsing ${filePath}: ${error2.message}`
+    );
+    return void 0;
+  }
+}
 function findRuffVersionInSpec(spec) {
   const trimmedSpec = spec.trim();
-  const fullDepMatch = trimmedSpec.match(/^ruff\s*(.+)$/);
-  let versionSpec;
-  if (fullDepMatch) {
-    versionSpec = fullDepMatch[1];
-  } else {
+  if (!trimmedSpec.startsWith("ruff")) {
+    return void 0;
+  }
+  let versionSpec = trimmedSpec.slice("ruff".length);
+  if (!versionSpec.match(/^(?:\s+|[=<>~!])/)) {
     return void 0;
   }
   versionSpec = versionSpec.replace(/\\$/, "").trim();
@@ -28904,9 +28979,7 @@ function findRuffVersionInSpec(spec) {
   if (match) {
     let version2 = match[1].trim();
     if (version2) {
-      if (version2.startsWith("==")) {
-        version2 = version2.slice(2);
-      }
+      version2 = normalizeVersionSpecifier(version2);
       if (trimmedSpec.includes(";")) {
         warning(
           "Environment markers are ignored. ruff is a standalone tool that works independently of Python version."
@@ -28918,24 +28991,33 @@ function findRuffVersionInSpec(spec) {
   }
   return void 0;
 }
-function getRuffVersionFromAllDependencies(allDependencies) {
-  return allDependencies.map((dep) => findRuffVersionInSpec(dep)).find((version2) => version2 !== void 0);
+function getRuffVersionFromRequirementsText(fileContent) {
+  return getRuffVersionFromAllDependencies(fileContent.split("\n"));
 }
-function parsePyproject(pyprojectContent) {
-  const pyproject = parse(pyprojectContent);
-  const dependencies = pyproject?.project?.dependencies || [];
+function getRuffVersionFromPyprojectContent(pyprojectContent) {
+  const pyproject = parsePyprojectContent(pyprojectContent);
+  return getRuffVersionFromParsedPyproject(pyproject);
+}
+function parsePyprojectContent(pyprojectContent) {
+  return parse(pyprojectContent);
+}
+function getVersionFileParser(filePath) {
+  return VERSION_FILE_PARSERS.find((parser) => parser.supports(filePath));
+}
+function getRuffVersionFromParsedPyproject(pyproject) {
+  const dependencies = pyproject.project?.dependencies || [];
   const optionalDependencies = Object.values(
-    pyproject?.project?.["optional-dependencies"] || {}
+    pyproject.project?.["optional-dependencies"] || {}
   ).flat();
   const devDependencies = Object.values(
-    pyproject?.["dependency-groups"] || {}
+    pyproject["dependency-groups"] || {}
   ).flat().filter((item) => typeof item === "string");
   return getRuffVersionFromAllDependencies(
     dependencies.concat(optionalDependencies, devDependencies)
   ) || getRuffVersionFromPoetryGroups(pyproject);
 }
 function getRuffVersionFromPoetryGroups(pyproject) {
-  const poetry = pyproject?.tool?.poetry || {};
+  const poetry = pyproject.tool?.poetry || {};
   const poetryGroups = Object.values(poetry.group || {});
   if (poetry.dependencies) {
     poetryGroups.unshift({ dependencies: poetry.dependencies });
@@ -28947,50 +29029,203 @@ function getRuffVersionFromPoetryGroups(pyproject) {
     return void 0;
   }).find((version2) => version2 !== void 0);
 }
-function getRuffVersionFromRequirementsFile(filePath) {
-  if (!fs6.existsSync(filePath)) {
-    warning(`Could not find file: ${filePath}`);
-    return void 0;
-  }
-  const pyprojectContent = fs6.readFileSync(filePath, "utf-8");
-  if (filePath.endsWith(".txt")) {
-    return getRuffVersionFromAllDependencies(pyprojectContent.split("\n"));
-  }
-  try {
-    return parsePyproject(pyprojectContent);
-  } catch (err) {
-    const message = err.message;
-    warning(`Error while parsing ${filePath}: ${message}`);
-    return void 0;
-  }
+function getRuffVersionFromAllDependencies(allDependencies) {
+  return allDependencies.map((dependency) => findRuffVersionInSpec(dependency)).find((version2) => version2 !== void 0);
 }
 
-// src/utils/pyproject-finder.ts
-var fs7 = __toESM(require("node:fs"), 1);
-var path7 = __toESM(require("node:path"), 1);
-function findPyprojectToml(startDir, workspaceRoot) {
-  let currentDir = path7.resolve(startDir);
-  const resolvedWorkspaceRoot = path7.resolve(workspaceRoot);
-  while (true) {
-    const pyprojectPath = path7.join(currentDir, "pyproject.toml");
-    debug(`Checking for ${pyprojectPath}`);
-    if (fs7.existsSync(pyprojectPath)) {
-      info(`Found pyproject.toml at ${pyprojectPath}`);
-      return pyprojectPath;
-    }
-    if (currentDir === resolvedWorkspaceRoot) {
-      return void 0;
-    }
-    const parentDir = path7.dirname(currentDir);
-    if (parentDir === currentDir || !isPathWithinWorkspace(parentDir, resolvedWorkspaceRoot)) {
-      return void 0;
-    }
-    currentDir = parentDir;
+// src/version/version-request-resolver.ts
+var VersionRequestContext = class {
+  sourceDirectory;
+  version;
+  versionFile;
+  workspaceRoot;
+  parsedFiles = /* @__PURE__ */ new Map();
+  constructor(version2, versionFile2, sourceDirectory, workspaceRoot) {
+    this.version = version2;
+    this.versionFile = versionFile2;
+    this.sourceDirectory = sourceDirectory;
+    this.workspaceRoot = workspaceRoot;
   }
+  getVersionFile(filePath) {
+    const cachedResult = this.parsedFiles.get(filePath);
+    if (cachedResult !== void 0 || this.parsedFiles.has(filePath)) {
+      return cachedResult;
+    }
+    const result = getParsedVersionFile(filePath);
+    this.parsedFiles.set(filePath, result);
+    return result;
+  }
+  getWorkspacePyprojectPath() {
+    return findPyprojectToml(this.sourceDirectory, this.workspaceRoot);
+  }
+};
+var ExplicitInputVersionResolver = class {
+  resolve(context) {
+    if (context.version === void 0) {
+      return void 0;
+    }
+    return {
+      source: "input",
+      specifier: normalizeVersionSpecifier(context.version)
+    };
+  }
+};
+var VersionFileVersionResolver = class {
+  resolve(context) {
+    if (context.versionFile === void 0) {
+      return void 0;
+    }
+    const versionFile2 = context.getVersionFile(context.versionFile);
+    if (versionFile2 === void 0) {
+      warning(
+        `Could not parse version from ${context.versionFile}. Using latest version.`
+      );
+      return void 0;
+    }
+    return {
+      format: versionFile2.format,
+      source: "version-file",
+      sourcePath: context.versionFile,
+      specifier: versionFile2.specifier
+    };
+  }
+};
+var WorkspaceVersionResolver = class {
+  resolve(context) {
+    const pyprojectPath = context.getWorkspacePyprojectPath();
+    if (!pyprojectPath) {
+      info("Could not find pyproject.toml. Using latest version.");
+      return void 0;
+    }
+    const versionFile2 = context.getVersionFile(pyprojectPath);
+    if (versionFile2 === void 0) {
+      info(
+        `Could not parse version from ${pyprojectPath}. Using latest version.`
+      );
+      return void 0;
+    }
+    return {
+      format: versionFile2.format,
+      source: "pyproject.toml",
+      sourcePath: pyprojectPath,
+      specifier: versionFile2.specifier
+    };
+  }
+};
+var LatestVersionResolver = class {
+  resolve() {
+    return {
+      source: "default",
+      specifier: "latest"
+    };
+  }
+};
+var VERSION_REQUEST_RESOLVERS = [
+  new ExplicitInputVersionResolver(),
+  new VersionFileVersionResolver(),
+  new WorkspaceVersionResolver(),
+  new LatestVersionResolver()
+];
+function resolveVersionRequest(options) {
+  const version2 = emptyToUndefined(options.version);
+  const versionFile2 = emptyToUndefined(options.versionFile);
+  if (version2 !== void 0 && versionFile2 !== void 0) {
+    throw new Error(
+      "It is not allowed to specify both version and version-file"
+    );
+  }
+  const context = new VersionRequestContext(
+    version2,
+    versionFile2,
+    options.sourceDirectory,
+    options.workspaceRoot
+  );
+  for (const resolver of VERSION_REQUEST_RESOLVERS) {
+    const request = resolver.resolve(context);
+    if (request !== void 0) {
+      return request;
+    }
+  }
+  throw new Error("Could not resolve a requested Ruff version.");
 }
-function isPathWithinWorkspace(checkPath, workspaceRoot) {
-  const relativePath = path7.relative(workspaceRoot, checkPath);
-  return !relativePath.startsWith("..") && !path7.isAbsolute(relativePath);
+function emptyToUndefined(value) {
+  return value === void 0 || value === "" ? void 0 : value;
+}
+
+// src/version/resolve.ts
+var ExactVersionResolver = class {
+  async resolve(context) {
+    if (context.parsedSpecifier.kind !== "exact") {
+      return void 0;
+    }
+    debug(
+      `Version ${context.parsedSpecifier.normalized} is an explicit version.`
+    );
+    return context.parsedSpecifier.normalized;
+  }
+};
+var LatestVersionResolver2 = class {
+  async resolve(context) {
+    if (context.parsedSpecifier.kind !== "latest") {
+      return void 0;
+    }
+    return await getLatestVersion(context.manifestUrl);
+  }
+};
+var RangeVersionResolver = class {
+  async resolve(context) {
+    if (context.parsedSpecifier.kind !== "range") {
+      return void 0;
+    }
+    const availableVersions = await getAllVersions(context.manifestUrl);
+    const resolvedVersion = maxSatisfying2(
+      availableVersions,
+      context.parsedSpecifier.normalized
+    );
+    if (resolvedVersion === void 0) {
+      throw new Error(`No version found for ${context.parsedSpecifier.raw}`);
+    }
+    debug(`Resolved version: ${resolvedVersion}`);
+    return resolvedVersion;
+  }
+};
+var CONCRETE_VERSION_RESOLVERS = [
+  new ExactVersionResolver(),
+  new LatestVersionResolver2(),
+  new RangeVersionResolver()
+];
+async function resolveRuffVersion(options) {
+  const request = resolveVersionRequest(options);
+  return await resolveVersion(request.specifier, options.manifestFile);
+}
+async function resolveVersion(versionInput, manifestUrl) {
+  debug(`Resolving ${versionInput}...`);
+  const context = {
+    manifestUrl,
+    parsedSpecifier: parseVersionSpecifier(versionInput)
+  };
+  for (const resolver of CONCRETE_VERSION_RESOLVERS) {
+    const version2 = await resolver.resolve(context);
+    if (version2 !== void 0) {
+      return version2;
+    }
+  }
+  throw new Error(`No version found for ${versionInput}`);
+}
+function maxSatisfying2(versions, version2) {
+  const maxSemver = evaluateVersions(versions, version2);
+  if (maxSemver !== "") {
+    debug(`Found a version that satisfies the semver range: ${maxSemver}`);
+    return maxSemver;
+  }
+  const maxPep440 = pep440.maxSatisfying(versions, version2);
+  if (maxPep440 !== null) {
+    debug(
+      `Found a version that satisfies the pep440 specifier: ${maxPep440}`
+    );
+    return maxPep440;
+  }
+  return void 0;
 }
 
 // src/ruff-action.ts
@@ -29050,42 +29285,13 @@ async function setupRuff(platform2, arch3, checkSum2, githubToken2) {
   };
 }
 async function determineVersion() {
-  if (versionFile !== "" && version !== "") {
-    throw Error("It is not allowed to specify both version and version-file");
-  }
-  if (version !== "") {
-    return await resolveVersion(version, manifestFile || void 0);
-  }
-  if (versionFile !== "") {
-    const versionFromPyproject2 = getRuffVersionFromRequirementsFile(versionFile);
-    if (versionFromPyproject2 === void 0) {
-      warning(
-        `Could not parse version from ${versionFile}. Using latest version.`
-      );
-    }
-    return await resolveVersion(
-      versionFromPyproject2 || "latest",
-      manifestFile || void 0
-    );
-  }
-  const pyProjectPath = findPyprojectToml(
-    src,
-    process.env.GITHUB_WORKSPACE || "."
-  );
-  if (!pyProjectPath) {
-    info(`Could not find pyproject.toml. Using latest version.`);
-    return await resolveVersion("latest", manifestFile || void 0);
-  }
-  const versionFromPyproject = getRuffVersionFromRequirementsFile(pyProjectPath);
-  if (versionFromPyproject === void 0) {
-    info(
-      `Could not parse version from ${pyProjectPath}. Using latest version.`
-    );
-  }
-  return await resolveVersion(
-    versionFromPyproject || "latest",
-    manifestFile || void 0
-  );
+  return await resolveRuffVersion({
+    manifestFile: manifestFile || void 0,
+    sourceDirectory: src,
+    version,
+    versionFile,
+    workspaceRoot: process.env.GITHUB_WORKSPACE || "."
+  });
 }
 function addRuffToPath(cachedPath) {
   addPath(cachedPath);

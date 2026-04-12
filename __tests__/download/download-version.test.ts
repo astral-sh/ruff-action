@@ -47,15 +47,17 @@ const mockCopyFile = jest.fn();
 const mockReaddir = jest.fn();
 
 jest.unstable_mockModule("node:fs", () => ({
+  default: {},
   promises: {
     copyFile: mockCopyFile,
     readdir: mockReaddir,
   },
 }));
 
-const { downloadVersion, resolveVersion, rewriteToMirror } = await import(
+const { downloadVersion, rewriteToMirror } = await import(
   "../../src/download/download-version"
 );
+const { resolveVersion } = await import("../../src/version/resolve");
 
 describe("download-version", () => {
   beforeEach(() => {

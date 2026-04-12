@@ -29,7 +29,7 @@ anything `ruff` can (ex, fix).
 
 | Input           | Description                                                                                                                                | Default            |
 |-----------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
-| `version`       | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | `latest`           |
+| `version`       | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | discovered from `pyproject.toml`, else `latest` |
 | `version-file`  | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
 | `manifest-file` | URL to a custom Ruff manifest in the `astral-sh/versions` format.                                                                          | None               |
 | `args`          | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
@@ -95,10 +95,10 @@ you can use the `args` input to overwrite the default value (`check`):
 
 ### Install specific versions
 
-By default this action looks for a pyproject.toml file in the root of the repository to determine
-the ruff version to install. If no pyproject.toml file is found, or no ruff version is defined in
-`project.dependencies`, `project.optional-dependencies`, or `dependency-groups`,
-the latest version is installed.
+By default this action searches upward from `src` until the workspace root to find the nearest
+`pyproject.toml` and determine the Ruff version to install. If no `pyproject.toml` file is found,
+or no Ruff version is defined in `project.dependencies`, `project.optional-dependencies`,
+`dependency-groups`, or supported Poetry dependency tables, the latest version is installed.
 
 > [!NOTE]
 > This action does only support ruff versions v0.0.247 and above.
@@ -151,7 +151,8 @@ to install the latest version that satisfies the range.
 #### Install a version from a specified version file
 
 You can specify a file to read the version from.
-Currently `pyproject.toml` and `requirements.txt` are supported.
+Currently `pyproject.toml` and `requirements.txt` are supported. If the file cannot be parsed
+or does not contain a Ruff version, the action warns and falls back to `latest`.
 
 ```yaml
 - name: Install a version from a specified version file
@@ -159,6 +160,13 @@ Currently `pyproject.toml` and `requirements.txt` are supported.
   with:
     version-file: "my-path/to/pyproject.toml-or-requirements.txt"
 ```
+
+Version resolution precedence is:
+
+1. `version`
+2. `version-file`
+3. nearest discoverable `pyproject.toml` found by searching upward from `src`
+4. `latest`
 
 #### Install using a custom manifest URL
 

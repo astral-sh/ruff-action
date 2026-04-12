@@ -4,7 +4,6 @@ import * as exec from "@actions/exec";
 import * as semver from "semver";
 import {
   downloadVersion,
-  resolveVersion,
   tryGetFromToolCache,
 } from "./download/download-version";
 import {
@@ -22,8 +21,7 @@ import {
   getPlatform,
   type Platform,
 } from "./utils/platforms";
-import { getRuffVersionFromRequirementsFile } from "./utils/pyproject";
-import { findPyprojectToml } from "./utils/pyproject-finder";
+import { resolveRuffVersion } from "./version/resolve";
 
 async function run(): Promise<void> {
   const platform = getPlatform();
@@ -94,44 +92,13 @@ async function setupRuff(
 }
 
 async function determineVersion(): Promise<string> {
-  if (versionFileInput !== "" && version !== "") {
-    throw Error("It is not allowed to specify both version and version-file");
-  }
-  if (version !== "") {
-    return await resolveVersion(version, manifestFile || undefined);
-  }
-  if (versionFileInput !== "") {
-    const versionFromPyproject =
-      getRuffVersionFromRequirementsFile(versionFileInput);
-    if (versionFromPyproject === undefined) {
-      core.warning(
-        `Could not parse version from ${versionFileInput}. Using latest version.`,
-      );
-    }
-    return await resolveVersion(
-      versionFromPyproject || "latest",
-      manifestFile || undefined,
-    );
-  }
-  const pyProjectPath = findPyprojectToml(
-    src,
-    process.env.GITHUB_WORKSPACE || ".",
-  );
-  if (!pyProjectPath) {
-    core.info(`Could not find pyproject.toml. Using latest version.`);
-    return await resolveVersion("latest", manifestFile || undefined);
-  }
-  const versionFromPyproject =
-    getRuffVersionFromRequirementsFile(pyProjectPath);
-  if (versionFromPyproject === undefined) {
-    core.info(
-      `Could not parse version from ${pyProjectPath}. Using latest version.`,
-    );
-  }
-  return await resolveVersion(
-    versionFromPyproject || "latest",
-    manifestFile || undefined,
-  );
+  return await resolveRuffVersion({
+    manifestFile: manifestFile || undefined,
+    sourceDirectory: src,
+    version,
+    versionFile: versionFileInput,
+    workspaceRoot: process.env.GITHUB_WORKSPACE || ".",
+  });
 }
 
 function addRuffToPath(cachedPath: string): void {

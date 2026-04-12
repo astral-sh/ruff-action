@@ -2,7 +2,6 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
-import * as pep440 from "@renovatebot/pep440";
 import * as semver from "semver";
 import {
   ASTRAL_MIRROR_PREFIX,
@@ -12,7 +11,7 @@ import {
 } from "../utils/constants";
 import type { Architecture, Platform } from "../utils/platforms";
 import { validateChecksum } from "./checksum/checksum";
-import { getAllVersions, getArtifact, getLatestVersion } from "./manifest";
+import { getArtifact } from "./manifest";
 
 export function tryGetFromToolCache(
   arch: Architecture,
@@ -162,35 +161,6 @@ async function extractDownloadedArtifact(
   return ruffDir;
 }
 
-export async function resolveVersion(
-  versionInput: string,
-  manifestUrl?: string,
-): Promise<string> {
-  core.debug(`Resolving ${versionInput}...`);
-
-  const version =
-    versionInput === "latest"
-      ? await getLatestVersion(manifestUrl)
-      : versionInput;
-
-  if (tc.isExplicitVersion(version)) {
-    core.debug(`Version ${version} is an explicit version.`);
-    return version;
-  }
-
-  const availableVersions = await getAvailableVersions(manifestUrl);
-  const resolvedVersion = maxSatisfying(availableVersions, version);
-  if (resolvedVersion === undefined) {
-    throw new Error(`No version found for ${version}`);
-  }
-  core.debug(`Resolved version: ${resolvedVersion}`);
-  return resolvedVersion;
-}
-
-async function getAvailableVersions(manifestUrl?: string): Promise<string[]> {
-  return await getAllVersions(manifestUrl);
-}
-
 function getMissingArtifactMessage(
   version: string,
   arch: Architecture,
@@ -244,23 +214,4 @@ function stripVersionPrefix(version: string): string {
 
 function getExtension(platform: Platform): string {
   return platform === "pc-windows-msvc" ? ".zip" : ".tar.gz";
-}
-
-function maxSatisfying(
-  versions: string[],
-  version: string,
-): string | undefined {
-  const maxSemver = tc.evaluateVersions(versions, version);
-  if (maxSemver !== "") {
-    core.debug(`Found a version that satisfies the semver range: ${maxSemver}`);
-    return maxSemver;
-  }
-  const maxPep440 = pep440.maxSatisfying(versions, version);
-  if (maxPep440 !== null) {
-    core.debug(
-      `Found a version that satisfies the pep440 specifier: ${maxPep440}`,
-    );
-    return maxPep440;
-  }
-  return undefined;
 }

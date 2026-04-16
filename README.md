@@ -33,7 +33,7 @@ anything `ruff` can (ex, fix).
 | `version-file`  | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
 | `manifest-file` | URL to a custom Ruff manifest in the `astral-sh/versions` format.                                                                          | None               |
 | `args`          | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
-| `src`           | The directory or single files to run `ruff` on.                                                                                            | [github.workspace] |
+| `src`           | Source path(s) to run `ruff` on. Supports glob patterns.                                                                                   | [github.workspace] |
 | `checksum`      | The sha256 checksum of the downloaded artifact.                                                                                            | None               |
 | `github-token`  | The GitHub token to use when downloading Ruff release artifacts from GitHub.                                                               | `GITHUB_TOKEN`     |
 
@@ -56,6 +56,8 @@ By default, Ruff version metadata is resolved from the
 
 ### Specify multiple files
 
+Separate multiple `src` values with whitespace.
+
 ```yaml
 - uses: astral-sh/ruff-action@v3
   with:
@@ -63,6 +65,24 @@ By default, Ruff version metadata is resolved from the
       path/to/file1.py
       path/to/file2.py
 ```
+
+### Use glob patterns
+
+Glob patterns (`*`, `?`, `[...]`, and `**`) are expanded by the action using
+`@actions/glob`, so they work consistently across Linux, macOS, and Windows
+runners. Hidden files and directories are skipped by default; target them
+explicitly, for example with `.venv/**/*.py`, to include them.
+
+```yaml
+- uses: astral-sh/ruff-action@v3
+  with:
+    src: "src/**/*.py"
+```
+
+> [!NOTE]
+> When using multiple patterns, only the first is used to search for
+> `pyproject.toml` to determine the Ruff version. Use the `version` input
+> for explicit control.
 
 ### Use to install ruff
 

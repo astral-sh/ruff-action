@@ -6,6 +6,7 @@ import {
   downloadVersion,
   tryGetFromToolCache,
 } from "./download/download-version";
+import { expandGlobs } from "./utils/glob";
 import {
   args,
   checkSum,
@@ -34,7 +35,15 @@ async function run(): Promise<void> {
     if (arch === undefined) {
       throw new Error(`Unsupported architecture: ${process.arch}`);
     }
-    const setupResult = await setupRuff(platform, arch, checkSum, githubToken);
+    const expandedSrc = await expandGlobs(src);
+
+    const setupResult = await setupRuff(
+      platform,
+      arch,
+      checkSum,
+      githubToken,
+      expandedSrc,
+    );
 
     addRuffToPath(setupResult.ruffDir);
     setOutputFormat();
@@ -45,7 +54,7 @@ async function run(): Promise<void> {
     await runRuff(
       path.join(setupResult.ruffDir, "ruff"),
       args.split(" "),
-      src.split(" "),
+      expandedSrc,
     );
 
     process.exit(0);
@@ -59,8 +68,9 @@ async function setupRuff(
   arch: Architecture,
   checkSum: string | undefined,
   githubToken: string,
+  expandedSrc: string[],
 ): Promise<{ ruffDir: string; version: string }> {
-  const resolvedVersion = await determineVersion();
+  const resolvedVersion = await determineVersion(expandedSrc);
   const manifestUrl = manifestFile || undefined;
   if (semver.lt(resolvedVersion, "v0.0.247")) {
     throw Error(
@@ -91,10 +101,10 @@ async function setupRuff(
   };
 }
 
-async function determineVersion(): Promise<string> {
+async function determineVersion(expandedSrc: string[]): Promise<string> {
   return await resolveRuffVersion({
     manifestFile: manifestFile || undefined,
-    sourceDirectory: src,
+    sourceDirectory: expandedSrc[0] || src,
     version,
     versionFile: versionFileInput,
     workspaceRoot: process.env.GITHUB_WORKSPACE || ".",

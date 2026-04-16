@@ -28146,6 +28146,71 @@ function getExtension(platform2) {
   return platform2 === "pc-windows-msvc" ? ".zip" : ".tar.gz";
 }
 
+// src/utils/glob.ts
+var import_node_fs2 = require("node:fs");
+var import_promises = require("node:fs/promises");
+function tokenize(input) {
+  const tokens = [];
+  let current = "";
+  let i = 0;
+  while (i < input.length) {
+    const ch = input[i];
+    if (ch === '"' || ch === "'") {
+      const quote = ch;
+      i++;
+      while (i < input.length && input[i] !== quote) {
+        if (quote === '"' && input[i] === "\\" && i + 1 < input.length && (input[i + 1] === '"' || input[i + 1] === "\\")) {
+          i++;
+          current += input[i];
+        } else {
+          current += input[i];
+        }
+        i++;
+      }
+      i++;
+    } else if (ch === " " || ch === "	" || ch === "\n" || ch === "\r") {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
+      i++;
+    } else {
+      current += ch;
+      i++;
+    }
+  }
+  if (current) {
+    tokens.push(current);
+  }
+  return tokens;
+}
+var GLOB_CHARS = /[*?[{]/;
+function isGlobPattern(s) {
+  return GLOB_CHARS.test(s);
+}
+async function expandGlobs(srcInput) {
+  const tokens = tokenize(srcInput);
+  const expanded = [];
+  for (const token of tokens) {
+    if (!isGlobPattern(token)) {
+      if (!(0, import_node_fs2.existsSync)(token)) {
+        throw new Error(`Source path '${token}' does not exist.`);
+      }
+      expanded.push(token);
+      continue;
+    }
+    const matches = [];
+    for await (const entry of (0, import_promises.glob)(token)) {
+      matches.push(entry);
+    }
+    if (matches.length === 0) {
+      throw new Error(`Glob pattern '${token}' matched no files.`);
+    }
+    expanded.push(...matches);
+  }
+  return expanded;
+}
+
 // src/utils/inputs.ts
 var version = getInput("version");
 var checkSum = getInput("checksum");
@@ -28243,7 +28308,7 @@ function isPathWithinWorkspace(checkPath, workspaceRoot) {
 }
 
 // src/version/file-parser.ts
-var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_fs3 = __toESM(require("node:fs"), 1);
 
 // node_modules/smol-toml/dist/error.js
 function getLineColFromPtr(string, ptr) {
@@ -28940,7 +29005,7 @@ var VERSION_FILE_PARSERS = [
   {
     format: "pyproject.toml",
     parse: (filePath) => {
-      const fileContent = import_node_fs2.default.readFileSync(filePath, "utf-8");
+      const fileContent = import_node_fs3.default.readFileSync(filePath, "utf-8");
       return getRuffVersionFromPyprojectContent(fileContent);
     },
     supports: (filePath) => filePath.endsWith("pyproject.toml")
@@ -28948,7 +29013,7 @@ var VERSION_FILE_PARSERS = [
   {
     format: "requirements",
     parse: (filePath) => {
-      const fileContent = import_node_fs2.default.readFileSync(filePath, "utf-8");
+      const fileContent = import_node_fs3.default.readFileSync(filePath, "utf-8");
       return getRuffVersionFromRequirementsText(fileContent);
     },
     supports: (filePath) => filePath.endsWith(".txt")
@@ -28956,7 +29021,7 @@ var VERSION_FILE_PARSERS = [
 ];
 function getParsedVersionFile(filePath) {
   info(`Trying to find version for ruff in: ${filePath}`);
-  if (!import_node_fs2.default.existsSync(filePath)) {
+  if (!import_node_fs3.default.existsSync(filePath)) {
     warning(`Could not find file: ${filePath}`);
     return void 0;
   }
@@ -29256,7 +29321,14 @@ async function run() {
     if (arch3 === void 0) {
       throw new Error(`Unsupported architecture: ${process.arch}`);
     }
-    const setupResult = await setupRuff(platform2, arch3, checkSum, githubToken);
+    const expandedSrc = await expandGlobs(src);
+    const setupResult = await setupRuff(
+      platform2,
+      arch3,
+      checkSum,
+      githubToken,
+      expandedSrc
+    );
     addRuffToPath(setupResult.ruffDir);
     setOutputFormat();
     addMatchers();
@@ -29265,15 +29337,15 @@ async function run() {
     await runRuff(
       path8.join(setupResult.ruffDir, "ruff"),
       args.split(" "),
-      src.split(" ")
+      expandedSrc
     );
     process.exit(0);
   } catch (err) {
     setFailed(err.message);
   }
 }
-async function setupRuff(platform2, arch3, checkSum2, githubToken2) {
-  const resolvedVersion = await determineVersion();
+async function setupRuff(platform2, arch3, checkSum2, githubToken2, expandedSrc) {
+  const resolvedVersion = await determineVersion(expandedSrc);
   const manifestUrl = manifestFile || void 0;
   if (semver4.lt(resolvedVersion, "v0.0.247")) {
     throw Error(
@@ -29301,10 +29373,10 @@ async function setupRuff(platform2, arch3, checkSum2, githubToken2) {
     version: downloadVersionResult.version
   };
 }
-async function determineVersion() {
+async function determineVersion(expandedSrc) {
   return await resolveRuffVersion({
     manifestFile: manifestFile || void 0,
-    sourceDirectory: src,
+    sourceDirectory: expandedSrc[0] || src,
     version,
     versionFile,
     workspaceRoot: process.env.GITHUB_WORKSPACE || "."

@@ -395,6 +395,20 @@ jobs:
           fi
         env:
           CHECK_SHOULD_FAIL_OUTCOME: ${{ steps.check-should-fail.outcome }}
+  test-glob-src:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Use glob pattern in src
+        uses: ./
+        with:
+          src: __tests__/fixtures/glob-project/**/*.py
+
   test-multiple-src:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -479,6 +493,7 @@ jobs:
       - test-with-explicit-token
       - test-args
       - test-failure
+      - test-glob-src
       - test-multiple-src
       - test-parent-directory-pyproject
       - test-custom-manifest-file

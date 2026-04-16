@@ -30,6 +30,7 @@
   "dependencies": {
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
+    "@actions/glob": "^0.7.0",
     "@actions/tool-cache": "^4.0.0",
     "@octokit/core": "^7.0.3",
     "@octokit/plugin-paginate-rest": "^13.1.1",

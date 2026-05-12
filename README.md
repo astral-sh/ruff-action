@@ -43,13 +43,13 @@ By default, Ruff version metadata is resolved from the
 ### Basic
 
 ```yaml
-- uses: astral-sh/ruff-action@v3
+- uses: astral-sh/ruff-action@v4.0.0
 ```
 
 ### Specify a different source directory
 
 ```yaml
-- uses: astral-sh/ruff-action@v3
+- uses: astral-sh/ruff-action@v4.0.0
   with:
     src: "./src"
 ```
@@ -57,7 +57,7 @@ By default, Ruff version metadata is resolved from the
 ### Specify multiple files
 
 ```yaml
-- uses: astral-sh/ruff-action@v3
+- uses: astral-sh/ruff-action@v4.0.0
   with:
     src: >-
       path/to/file1.py
@@ -69,7 +69,7 @@ By default, Ruff version metadata is resolved from the
 This action adds ruff to the PATH, so you can use it in subsequent steps.
 
 ```yaml
-- uses: astral-sh/ruff-action@v3
+- uses: astral-sh/ruff-action@v4.0.0
 - run: ruff check --fix
 - run: ruff format
 ```
@@ -80,7 +80,7 @@ you can use the `args` input to overwrite the default value (`check`):
 
 ```yaml
 - name: Install ruff without running check or format
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     args: "--version"
 ```
@@ -88,7 +88,7 @@ you can use the `args` input to overwrite the default value (`check`):
 ### Use `ruff format`
 
 ```yaml
-- uses: astral-sh/ruff-action@v3
+- uses: astral-sh/ruff-action@v4.0.0
   with:
     args: "format --check --diff"
 ```
@@ -107,7 +107,7 @@ or no Ruff version is defined in `project.dependencies`, `project.optional-depen
 
 ```yaml
 - name: Install the latest version of ruff
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: "latest"
 ```
@@ -116,7 +116,7 @@ or no Ruff version is defined in `project.dependencies`, `project.optional-depen
 
 ```yaml
 - name: Install a specific version of ruff
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: "0.4.4"
 ```
@@ -129,21 +129,21 @@ to install the latest version that satisfies the range.
 
 ```yaml
 - name: Install a semver range of ruff
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: ">=0.4.0"
 ```
 
 ```yaml
 - name: Pinning a minor version of ruff
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: "0.4.x"
 ```
 
 ```yaml
 - name: Install a pep440-specifier-satisfying version of ruff
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: ">=0.11.10,<0.12.0"
 ```
@@ -156,7 +156,7 @@ or does not contain a Ruff version, the action warns and falls back to `latest`.
 
 ```yaml
 - name: Install a version from a specified version file
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version-file: "my-path/to/pyproject.toml-or-requirements.txt"
 ```
@@ -175,7 +175,7 @@ This affects both version resolution and artifact selection.
 
 ```yaml
 - name: Install Ruff from a custom manifest
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: "latest"
     manifest-file: "https://example.com/ruff.ndjson"
@@ -189,7 +189,7 @@ are automatically verified by this action. The sha256 hashes can be found on the
 
 ```yaml
 - name: Install a specific version and validate the checksum
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     version: "0.7.4"
     checksum: "0de731c669b9ece77e799ac3f4a160c30849752714d9775c94cc4cfaf326860c"
@@ -209,7 +209,7 @@ are not sufficient, you can provide a custom GitHub token with the necessary per
 
 ```yaml
 - name: Install the latest version of ruff with a custom GitHub token
-  uses: astral-sh/ruff-action@v3
+  uses: astral-sh/ruff-action@v4.0.0
   with:
     github-token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
 ```

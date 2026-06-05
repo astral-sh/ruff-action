@@ -24760,6 +24760,23 @@ var fs4 = __toESM(require("node:fs"), 1);
 
 // src/download/checksum/known-checksums.ts
 var KNOWN_CHECKSUMS = {
+  "aarch64-apple-darwin-0.15.16": "9deb6c4c38c9324bfd98ea4efb40946aae99a987e7f9d1308a1291f14f6b46e2",
+  "aarch64-pc-windows-msvc-0.15.16": "d2654d546fa03618e4ce39a568e78a0ccda71319928832266009b286f57354f8",
+  "aarch64-unknown-linux-gnu-0.15.16": "a39b83af7288da13c013a789af1a4f875562ba09fc8011a2825a4883cb3a97a9",
+  "aarch64-unknown-linux-musl-0.15.16": "3b39fc2608e12c554d42f6950a5ea131db8d8a0736c8949b3581c361f9f011d4",
+  "arm-unknown-linux-musleabihf-0.15.16": "30d04d1f068a443fe6a919a9f0a77a3e59deab515b6b60c07a678d94332d444b",
+  "armv7-unknown-linux-gnueabihf-0.15.16": "1f32fb51a347b70faa7d248ed524954736a79d3fd00887f79ee8c22004c8cca5",
+  "armv7-unknown-linux-musleabihf-0.15.16": "5d14928f26c14bb40c7ec0b9db1f7e05e6e6b21ffd499dafcd77d0575fa796d2",
+  "i686-pc-windows-msvc-0.15.16": "a68887cad08f7cf47e3753b1c84add837a64d9070102f43ec29d2a9fc8ed144a",
+  "i686-unknown-linux-gnu-0.15.16": "3afb75f98244d7aec2532b5140da8ec9f2f9422ae27d7ba42bd6f8b20d76547e",
+  "i686-unknown-linux-musl-0.15.16": "6fa9f045b0893456476836333410af37e52c32ecd511046d177802aeed42b2aa",
+  "powerpc64le-unknown-linux-gnu-0.15.16": "adeee21392ed843e1e30e64a1b238d844c00385ac983fbc231b786cfe5d3bee7",
+  "riscv64gc-unknown-linux-gnu-0.15.16": "e8e04a9d0664bd78e5164be9376091dbeefc455cdb684814a949dd7ebf5daa88",
+  "s390x-unknown-linux-gnu-0.15.16": "2bd5e6a045f19a593b269d362c07b4bcc68b57b73d2ada1eecf3618d0cde0237",
+  "x86_64-apple-darwin-0.15.16": "a8a7a60182f66b5995bd16e1831cf013e89558edf52135a1b6646f155f491f98",
+  "x86_64-pc-windows-msvc-0.15.16": "b6c843fa84afb37af9d665a418324782ae18ea3dd1de775abfd7cf17f9431f85",
+  "x86_64-unknown-linux-gnu-0.15.16": "b949a853b208b0f818a150fb06490487db585a15becaeda28483dd662939030a",
+  "x86_64-unknown-linux-musl-0.15.16": "f52d90f8a6b1b3ad7d74301c3c796652e851d8f05b6ba26d139f05f4838cf412",
   "aarch64-apple-darwin-0.15.15": "2f7063e09d3c2af019b56f4fc6548199851e9387f359d696111af312adfe7619",
   "aarch64-pc-windows-msvc-0.15.15": "801067abc7c499bda61ff7308a271f7b5258c1a9f90abb081d9ac099cee20720",
   "aarch64-unknown-linux-gnu-0.15.15": "d334ae13383977fdaf754e6ea3d85c7b3ccbd510c713463eca73d0cd7151fe12",

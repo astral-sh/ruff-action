@@ -9,9 +9,11 @@ jest.unstable_mockModule("@actions/core", () => ({
   warning,
 }));
 
-const { findRuffVersionInSpec, getRuffVersionFromFile } = await import(
-  "../../src/version/file-parser"
-);
+const {
+  findRuffVersionInSpec,
+  getRuffVersionFromFile,
+  getRuffVersionFromUvLockContent,
+} = await import("../../src/version/file-parser");
 
 describe("file-parser", () => {
   beforeEach(() => {
@@ -123,6 +125,27 @@ describe("file-parser", () => {
         "__tests__/fixtures/pyproject-dependency-poetry-project/pyproject.toml",
       );
       expect(result).toBe("~0.8.2");
+    });
+
+    it("reads the version from uv.lock", () => {
+      const result = getRuffVersionFromFile("__tests__/fixtures/uv.lock");
+      expect(result).toBe("0.9.5");
+    });
+  });
+
+  describe("getRuffVersionFromUvLockContent", () => {
+    it("extracts the ruff version from uv.lock content", () => {
+      const result = getRuffVersionFromUvLockContent(
+        '[[package]]\nname = "other"\nversion = "1.0.0"\n\n[[package]]\nname = "ruff"\nversion = "0.9.5"\n',
+      );
+      expect(result).toBe("0.9.5");
+    });
+
+    it("returns undefined when ruff is not in uv.lock", () => {
+      const result = getRuffVersionFromUvLockContent(
+        '[[package]]\nname = "other"\nversion = "1.0.0"\n',
+      );
+      expect(result).toBeUndefined();
     });
   });
 });

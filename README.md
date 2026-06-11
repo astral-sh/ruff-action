@@ -151,14 +151,14 @@ to install the latest version that satisfies the range.
 #### Install a version from a specified version file
 
 You can specify a file to read the version from.
-Currently `pyproject.toml` and `requirements.txt` are supported. If the file cannot be parsed
-or does not contain a Ruff version, the action warns and falls back to `latest`.
+Currently `pyproject.toml`, `requirements.txt` and `uv.lock` are supported. If the file cannot
+be parsed or does not contain a Ruff version, the action warns and falls back to `latest`.
 
 ```yaml
 - name: Install a version from a specified version file
   uses: astral-sh/ruff-action@v4.0.0
   with:
-    version-file: "my-path/to/pyproject.toml-or-requirements.txt"
+    version-file: "my-path/to/pyproject.toml-requirements.txt-or-uv.lock"
 ```
 
 Version resolution precedence is:

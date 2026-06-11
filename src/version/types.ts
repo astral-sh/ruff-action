@@ -4,7 +4,7 @@ export type VersionSource =
   | "pyproject.toml"
   | "default";
 
-export type VersionFileFormat = "pyproject.toml" | "requirements";
+export type VersionFileFormat = "pyproject.toml" | "requirements" | "uv.lock";
 
 export interface ParsedVersionFile {
   format: VersionFileFormat;

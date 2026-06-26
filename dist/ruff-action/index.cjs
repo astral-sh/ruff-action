@@ -29099,6 +29099,14 @@ var VERSION_FILE_PARSERS = [
     supports: (filePath) => filePath.endsWith("pyproject.toml")
   },
   {
+    format: "uv.lock",
+    parse: (filePath) => {
+      const fileContent = import_node_fs2.default.readFileSync(filePath, "utf-8");
+      return getRuffVersionFromUvLockContent(fileContent);
+    },
+    supports: (filePath) => filePath.endsWith("uv.lock")
+  },
+  {
     format: "requirements",
     parse: (filePath) => {
       const fileContent = import_node_fs2.default.readFileSync(filePath, "utf-8");
@@ -29170,6 +29178,15 @@ function getRuffVersionFromPyprojectContent(pyprojectContent) {
 }
 function parsePyprojectContent(pyprojectContent) {
   return parse(pyprojectContent);
+}
+function getRuffVersionFromUvLockContent(uvLockContent) {
+  const uvLock = parse(uvLockContent);
+  const ruffPackage = (uvLock.package || []).find((pkg) => pkg.name === "ruff");
+  if (ruffPackage?.version === void 0) {
+    return void 0;
+  }
+  info(`Found ruff version in uv.lock: ${ruffPackage.version}`);
+  return ruffPackage.version;
 }
 function getVersionFileParser(filePath) {
   return VERSION_FILE_PARSERS.find((parser) => parser.supports(filePath));

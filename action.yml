@@ -15,7 +15,7 @@ inputs:
     required: false
     default: ""
   version-file:
-    description: "Path to a pyproject.toml or requirements.txt file to read the version from. If parsing fails, the action warns and falls back to `latest`."
+    description: "Path to a pyproject.toml, requirements.txt or uv.lock file to read the version from. If parsing fails, the action warns and falls back to `latest`."
     required: false
   checksum:
     description: "The checksum of the ruff version to install"

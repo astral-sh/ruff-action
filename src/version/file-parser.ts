@@ -24,6 +24,10 @@ interface Pyproject {
   };
 }
 
+interface UvLock {
+  package?: Array<{ name?: string; version?: string }>;
+}
+
 const VERSION_FILE_PARSERS: VersionFileParser[] = [
   {
     format: "pyproject.toml",
@@ -32,6 +36,14 @@ const VERSION_FILE_PARSERS: VersionFileParser[] = [
       return getRuffVersionFromPyprojectContent(fileContent);
     },
     supports: (filePath) => filePath.endsWith("pyproject.toml"),
+  },
+  {
+    format: "uv.lock",
+    parse: (filePath) => {
+      const fileContent = fs.readFileSync(filePath, "utf-8");
+      return getRuffVersionFromUvLockContent(fileContent);
+    },
+    supports: (filePath) => filePath.endsWith("uv.lock"),
   },
   {
     format: "requirements",
@@ -130,6 +142,18 @@ export function getRuffVersionFromPyprojectContent(
 
 export function parsePyprojectContent(pyprojectContent: string): Pyproject {
   return toml.parse(pyprojectContent) as Pyproject;
+}
+
+export function getRuffVersionFromUvLockContent(
+  uvLockContent: string,
+): string | undefined {
+  const uvLock = toml.parse(uvLockContent) as UvLock;
+  const ruffPackage = (uvLock.package || []).find((pkg) => pkg.name === "ruff");
+  if (ruffPackage?.version === undefined) {
+    return undefined;
+  }
+  core.info(`Found ruff version in uv.lock: ${ruffPackage.version}`);
+  return ruffPackage.version;
 }
 
 function getVersionFileParser(filePath: string): VersionFileParser | undefined {

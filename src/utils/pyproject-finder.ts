@@ -3,19 +3,22 @@ import * as path from "node:path";
 import * as core from "@actions/core";
 
 /**
- * Search for a pyproject.toml file starting from the given directory
+ * Search for a pyproject.toml file starting from the given source path
  * and traversing upwards through parent directories until reaching
  * the GitHub workspace root.
  *
- * @param startDir The directory to start the search from (e.g., the src input)
+ * If the source path points to a file, the search begins in that file's
+ * parent directory.
+ *
+ * @param startPath The source path to start the search from (file or directory)
  * @param workspaceRoot The GitHub workspace directory (GITHUB_WORKSPACE)
  * @returns The path to the found pyproject.toml, or undefined if not found
  */
 export function findPyprojectToml(
-  startDir: string,
+  startPath: string,
   workspaceRoot: string,
 ): string | undefined {
-  let currentDir = path.resolve(startDir);
+  let currentDir = resolveStartDirectory(startPath);
   const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
 
   while (true) {
@@ -40,6 +43,19 @@ export function findPyprojectToml(
 
     currentDir = parentDir;
   }
+}
+
+function resolveStartDirectory(startPath: string): string {
+  const resolvedStartPath = path.resolve(startPath);
+
+  if (!fs.existsSync(resolvedStartPath)) {
+    return resolvedStartPath;
+  }
+
+  const stats = fs.statSync(resolvedStartPath);
+  return stats.isDirectory()
+    ? resolvedStartPath
+    : path.dirname(resolvedStartPath);
 }
 
 /**

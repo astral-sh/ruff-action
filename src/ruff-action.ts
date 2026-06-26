@@ -21,6 +21,11 @@ import {
   getPlatform,
   type Platform,
 } from "./utils/platforms";
+import {
+  expandSourceInput,
+  getVersionSourceDirectory,
+  splitInput,
+} from "./utils/source-input";
 import { resolveRuffVersion } from "./version/resolve";
 
 async function run(): Promise<void> {
@@ -42,11 +47,7 @@ async function run(): Promise<void> {
     core.setOutput("ruff-version", setupResult.version);
     core.info(`Successfully installed ruff version ${setupResult.version}`);
 
-    await runRuff(
-      path.join(setupResult.ruffDir, "ruff"),
-      args.split(" "),
-      src.split(" "),
-    );
+    await runRuff(path.join(setupResult.ruffDir, "ruff"), args, src);
 
     process.exit(0);
   } catch (err) {
@@ -94,7 +95,11 @@ async function setupRuff(
 async function determineVersion(): Promise<string> {
   return await resolveRuffVersion({
     manifestFile: manifestFile || undefined,
-    sourceDirectory: src,
+    sourceDirectory: await getVersionSourceDirectory(
+      src,
+      version,
+      versionFileInput,
+    ),
     version,
     versionFile: versionFileInput,
     workspaceRoot: process.env.GITHUB_WORKSPACE || ".",
@@ -125,10 +130,10 @@ function getActionRoot(): string {
 
 async function runRuff(
   ruffExecutablePath: string,
-  args: string[],
-  src: string[],
+  args: string,
+  src: string,
 ): Promise<void> {
-  const execArgs = [...args, ...src];
+  const execArgs = [...splitInput(args), ...(await expandSourceInput(src))];
   await exec.exec(ruffExecutablePath, execArgs);
 }
 

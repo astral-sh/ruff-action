@@ -7,7 +7,7 @@ inputs:
     required: false
     default: "check"
   src:
-    description: "Source to run Ruff. Defaults to the current directory."
+    description: "Source path(s) or @actions/glob pattern(s) to run Ruff on. Defaults to the current workspace."
     required: false
     default: ${{ github.workspace }}
   version:

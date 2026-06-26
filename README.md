@@ -33,7 +33,7 @@ anything `ruff` can (ex, fix).
 | `version-file`  | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
 | `manifest-file` | URL to a custom Ruff manifest in the `astral-sh/versions` format.                                                                          | None               |
 | `args`          | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
-| `src`           | The directory or single files to run `ruff` on.                                                                                            | [github.workspace] |
+| `src`           | Source path(s) to run `ruff` on. Supports glob patterns.                                                                                   | [github.workspace] |
 | `checksum`      | The sha256 checksum of the downloaded artifact.                                                                                            | None               |
 | `github-token`  | The GitHub token to use when downloading Ruff release artifacts from GitHub.                                                               | `GITHUB_TOKEN`     |
 
@@ -56,6 +56,8 @@ By default, Ruff version metadata is resolved from the
 
 ### Specify multiple files
 
+Separate multiple `src` values with whitespace.
+
 ```yaml
 - uses: astral-sh/ruff-action@v4.0.0
   with:
@@ -63,6 +65,31 @@ By default, Ruff version metadata is resolved from the
       path/to/file1.py
       path/to/file2.py
 ```
+
+### Use glob patterns
+
+Glob patterns (`*`, `?`, `[...]`, and `**`) are expanded by the action using
+[`@actions/glob`](https://github.com/actions/toolkit/tree/main/packages/glob),
+so they work consistently across Linux, macOS, and Windows runners. This action
+does not emulate Bash, PowerShell, or other shell-specific glob expansion.
+
+Hidden files and directories are skipped by default; target them explicitly, for
+example with `.venv/**/*.py`, to include them. If a pattern does not match any
+files, the original pattern is passed to Ruff so Ruff can report the missing
+path. Literal glob metacharacters in file or directory names must be escaped
+using `@actions/glob` syntax.
+
+```yaml
+- uses: astral-sh/ruff-action@v3
+  with:
+    src: "src/**/*.py"
+```
+
+> [!NOTE]
+> When using multiple patterns, only the first is used to search for
+> `pyproject.toml` to determine the Ruff version. Use the `version` input
+> for explicit control. Large glob expansions may hit command-line length limits,
+> especially on Windows.
 
 ### Use to install ruff
 

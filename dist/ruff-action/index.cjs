@@ -31784,7 +31784,7 @@ function parsePyprojectContent(pyprojectContent) {
   return parse2(pyprojectContent);
 }
 function getRuffVersionFromUvLockContent(uvLockContent) {
-  const uvLock = parse(uvLockContent);
+  const uvLock = parse2(uvLockContent);
   const ruffPackage = (uvLock.package || []).find((pkg) => pkg.name === "ruff");
   if (ruffPackage?.version === void 0) {
     return void 0;

@@ -357,6 +357,32 @@ describe("download-version", () => {
       expect(mockDownloadTool).toHaveBeenCalledTimes(1);
     });
 
+    it("skips the Astral mirror when downloadFromAstralMirror is false", async () => {
+      mockGetArtifact.mockResolvedValue({
+        archiveFormat: "tar.gz",
+        checksum: "abc123",
+        downloadUrl:
+          "https://github.com/astral-sh/ruff/releases/download/0.15.8/ruff-x86_64-unknown-linux-gnu.tar.gz",
+      });
+
+      await downloadVersion(
+        "unknown-linux-gnu",
+        "x86_64",
+        "0.15.8",
+        undefined,
+        "token",
+        undefined,
+        false,
+      );
+
+      expect(mockDownloadTool).toHaveBeenCalledWith(
+        "https://github.com/astral-sh/ruff/releases/download/0.15.8/ruff-x86_64-unknown-linux-gnu.tar.gz",
+        undefined,
+        "token",
+      );
+      expect(mockDownloadTool).toHaveBeenCalledTimes(1);
+    });
+
     it("uses manifest-file checksum metadata when checksum input is unset", async () => {
       mockGetArtifact.mockResolvedValue({
         archiveFormat: "tar.gz",

@@ -32,6 +32,7 @@ anything `ruff` can (ex, fix).
 | `version`       | The version of Ruff to install. See [Install specific versions](#install-specific-versions)                                                | discovered from `pyproject.toml`, else `latest` |
 | `version-file`  | The file to read the version from. See [Install a version from a specified version file](#install-a-version-from-a-specified-version-file) | None               |
 | `manifest-file` | URL to a custom Ruff manifest in the `astral-sh/versions` format.                                                                          | None               |
+| `download-from-astral-mirror` | Download Ruff from the Astral mirror instead of directly from GitHub Releases.                                                   | `true`             |
 | `args`          | The arguments to pass to the `ruff` command. See [Configuring Ruff]                                                                        | `check`            |
 | `src`           | Source path(s) to run `ruff` on. Supports glob patterns.                                                                                   | [github.workspace] |
 | `checksum`      | The sha256 checksum of the downloaded artifact.                                                                                            | None               |
@@ -224,10 +225,12 @@ are automatically verified by this action. The sha256 hashes can be found on the
 
 ### GitHub authentication token
 
-By default, this action resolves available uv versions from
-[`astral-sh/versions`](https://github.com/astral-sh/versions) and downloads release artifacts from `https://releases.astral.sh`. If this fails this action falls back to downloading from the GitHub releases page of the ruff repository.
+By default, this action resolves available Ruff versions from
+[`astral-sh/versions`](https://github.com/astral-sh/versions) and downloads release artifacts from `https://releases.astral.sh`. If this fails this action falls back to downloading from the GitHub releases page of the Ruff repository.
 
-You can provide a token via `github-token` to authenticate those downloads. By default, the
+Set `download-from-astral-mirror` to `false` to skip the Astral mirror and download directly from GitHub Releases.
+
+You can provide a token via `github-token` to authenticate GitHub Releases downloads. By default, the
 `GITHUB_TOKEN` secret is used, which is automatically provided by GitHub Actions.
 
 If the default

@@ -9,6 +9,7 @@ import {
 import {
   args,
   checkSum,
+  downloadFromAstralMirror,
   githubToken,
   manifestFile,
   src,
@@ -39,7 +40,13 @@ async function run(): Promise<void> {
     if (arch === undefined) {
       throw new Error(`Unsupported architecture: ${process.arch}`);
     }
-    const setupResult = await setupRuff(platform, arch, checkSum, githubToken);
+    const setupResult = await setupRuff(
+      platform,
+      arch,
+      checkSum,
+      githubToken,
+      downloadFromAstralMirror,
+    );
 
     addRuffToPath(setupResult.ruffDir);
     setOutputFormat();
@@ -60,6 +67,7 @@ async function setupRuff(
   arch: Architecture,
   checkSum: string | undefined,
   githubToken: string,
+  downloadFromAstralMirror: boolean,
 ): Promise<{ ruffDir: string; version: string }> {
   const resolvedVersion = await determineVersion();
   const manifestUrl = manifestFile || undefined;
@@ -84,6 +92,7 @@ async function setupRuff(
     checkSum,
     githubToken,
     manifestUrl,
+    downloadFromAstralMirror,
   );
 
   return {

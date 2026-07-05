@@ -35,6 +35,7 @@ export async function downloadVersion(
   checksum: string | undefined,
   githubToken: string,
   manifestUrl?: string,
+  downloadFromAstralMirror = true,
 ): Promise<{ version: string; cachedToolDir: string }> {
   const artifact = await getArtifact(version, arch, platform, manifestUrl);
 
@@ -57,6 +58,7 @@ export async function downloadVersion(
     arch,
     version,
     getDownloadToken(artifact.downloadUrl, githubToken),
+    downloadFromAstralMirror,
   );
   await validateChecksum(
     resolvedChecksum,
@@ -83,6 +85,10 @@ export async function downloadVersion(
   return { cachedToolDir, version };
 }
 
+/**
+ * Rewrite a GitHub Releases URL to the Astral mirror.
+ * Returns `undefined` if the URL does not match the expected GitHub prefix.
+ */
 export function rewriteToMirror(url: string): string | undefined {
   if (!url.startsWith(GITHUB_RELEASES_PREFIX)) {
     return undefined;
@@ -97,8 +103,11 @@ async function downloadArtifact(
   arch: Architecture,
   version: string,
   githubToken: string | undefined,
+  downloadFromAstralMirror: boolean,
 ): Promise<string> {
-  const mirrorUrl = rewriteToMirror(downloadUrl);
+  const mirrorUrl = downloadFromAstralMirror
+    ? rewriteToMirror(downloadUrl)
+    : undefined;
   const resolvedDownloadUrl = mirrorUrl ?? downloadUrl;
 
   try {

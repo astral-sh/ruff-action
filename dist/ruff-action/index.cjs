@@ -24275,6 +24275,17 @@ function getInput(name, options) {
   }
   return val.trim();
 }
+function getBooleanInput(name, options) {
+  const trueValue = ["true", "True", "TRUE"];
+  const falseValue = ["false", "False", "FALSE"];
+  const val = getInput(name, options);
+  if (trueValue.includes(val))
+    return true;
+  if (falseValue.includes(val))
+    return false;
+  throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
+Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+}
 function setOutput(name, value) {
   const filePath = process.env["GITHUB_OUTPUT"] || "";
   if (filePath) {
@@ -28183,7 +28194,7 @@ function tryGetFromToolCache(arch3, version2) {
   const installedPath = find(TOOL_CACHE_NAME, resolvedVersion, arch3);
   return { installedPath, version: resolvedVersion };
 }
-async function downloadVersion(platform2, arch3, version2, checksum, githubToken2, manifestUrl) {
+async function downloadVersion(platform2, arch3, version2, checksum, githubToken2, manifestUrl, downloadFromAstralMirror2 = true) {
   const artifact = await getArtifact(version2, arch3, platform2, manifestUrl);
   if (!artifact) {
     throw new Error(
@@ -28196,7 +28207,8 @@ async function downloadVersion(platform2, arch3, version2, checksum, githubToken
     platform2,
     arch3,
     version2,
-    getDownloadToken(artifact.downloadUrl, githubToken2)
+    getDownloadToken(artifact.downloadUrl, githubToken2),
+    downloadFromAstralMirror2
   );
   await validateChecksum(
     resolvedChecksum,
@@ -28226,8 +28238,8 @@ function rewriteToMirror(url) {
   }
   return ASTRAL_MIRROR_PREFIX + url.slice(GITHUB_RELEASES_PREFIX.length);
 }
-async function downloadArtifact(downloadUrl, platform2, arch3, version2, githubToken2) {
-  const mirrorUrl = rewriteToMirror(downloadUrl);
+async function downloadArtifact(downloadUrl, platform2, arch3, version2, githubToken2, downloadFromAstralMirror2) {
+  const mirrorUrl = downloadFromAstralMirror2 ? rewriteToMirror(downloadUrl) : void 0;
   const resolvedDownloadUrl = mirrorUrl ?? downloadUrl;
   try {
     return await downloadFile(
@@ -28307,6 +28319,16 @@ var args = getInput("args");
 var src = getInput("src");
 var versionFile = getInput("version-file");
 var manifestFile = getInput("manifest-file");
+var downloadFromAstralMirror = getBooleanInput2(
+  "download-from-astral-mirror",
+  true
+);
+function getBooleanInput2(name, defaultValue) {
+  if (getInput(name) === "") {
+    return defaultValue;
+  }
+  return getBooleanInput(name);
+}
 
 // src/utils/platforms.ts
 function getArch() {
@@ -32030,7 +32052,13 @@ async function run() {
     if (arch3 === void 0) {
       throw new Error(`Unsupported architecture: ${process.arch}`);
     }
-    const setupResult = await setupRuff(platform2, arch3, checkSum, githubToken);
+    const setupResult = await setupRuff(
+      platform2,
+      arch3,
+      checkSum,
+      githubToken,
+      downloadFromAstralMirror
+    );
     addRuffToPath(setupResult.ruffDir);
     setOutputFormat();
     addMatchers();
@@ -32042,7 +32070,7 @@ async function run() {
     setFailed(err.message);
   }
 }
-async function setupRuff(platform2, arch3, checkSum2, githubToken2) {
+async function setupRuff(platform2, arch3, checkSum2, githubToken2, downloadFromAstralMirror2) {
   const resolvedVersion = await determineVersion();
   const manifestUrl = manifestFile || void 0;
   if (semver4.lt(resolvedVersion, "v0.0.247")) {
@@ -32064,7 +32092,8 @@ async function setupRuff(platform2, arch3, checkSum2, githubToken2) {
     resolvedVersion,
     checkSum2,
     githubToken2,
-    manifestUrl
+    manifestUrl,
+    downloadFromAstralMirror2
   );
   return {
     ruffDir: downloadVersionResult.cachedToolDir,

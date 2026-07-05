@@ -23,6 +23,10 @@ inputs:
   manifest-file:
     description: "URL to a custom manifest file in the astral-sh/versions format."
     required: false
+  download-from-astral-mirror:
+    description: "Download Ruff from the Astral mirror instead of directly from GitHub Releases."
+    required: false
+    default: "true"
   github-token:
     description:
       "Used for authenticated downloads of Ruff release artifacts from GitHub."

@@ -23412,6 +23412,7 @@ var Summary = class {
   }
 };
 var _summary = new Summary();
+var summary = _summary;
 
 // node_modules/@actions/core/lib/platform.js
 var import_os2 = __toESM(require("os"), 1);
@@ -28311,6 +28312,60 @@ function getExtension(platform2) {
   return platform2 === "pc-windows-msvc" ? ".zip" : ".tar.gz";
 }
 
+// src/utils/annotations.ts
+var COMMAND_RE = /^::(?:error|warning)\s+(.*?)::(.*)$/;
+function formatAnnotationsForSummary(raw) {
+  const lines = raw.split(/\r?\n/);
+  const formatted = [];
+  let unmatchedCommandLines = 0;
+  for (const line of lines) {
+    const match3 = line.match(COMMAND_RE);
+    if (match3) {
+      const [, paramStr, message] = match3;
+      const params = {};
+      for (const pair of paramStr.split(",")) {
+        const eqIdx = pair.indexOf("=");
+        if (eqIdx !== -1) {
+          const key = pair.substring(0, eqIdx).trim();
+          const val = pair.substring(eqIdx + 1).trim();
+          params[key] = val;
+        }
+      }
+      const file = params.file || "";
+      const lineNo = params.line || "";
+      const col = params.col || "";
+      const title = params.title || "";
+      let code = "";
+      if (title) {
+        const codeMatch = title.match(/\(([^)]+)\)/);
+        if (codeMatch) {
+          code = `${codeMatch[1]} `;
+        }
+      }
+      if (file && lineNo) {
+        const colStr = col ? `:${col}` : "";
+        formatted.push(`${file}:${lineNo}${colStr}: ${code}${message}`);
+      } else {
+        formatted.push(`${code}${message}`);
+      }
+    } else if (line.startsWith("::")) {
+      unmatchedCommandLines++;
+    } else if (line.trim()) {
+      formatted.push(line);
+    }
+  }
+  if (unmatchedCommandLines > 0 && formatted.length === 0) {
+    return raw;
+  }
+  return truncate(formatted.join("\n"), 1e5);
+}
+function truncate(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars)}
+
+... (truncated, ${text.length - maxChars} more characters)`;
+}
+
 // src/utils/inputs.ts
 var version = getInput("version");
 var checkSum = getInput("checksum");
@@ -28323,6 +28378,7 @@ var downloadFromAstralMirror = getBooleanInput2(
   "download-from-astral-mirror",
   true
 );
+var summary2 = getBooleanInput2("summary", true);
 function getBooleanInput2(name, defaultValue) {
   if (getInput(name) === "") {
     return defaultValue;
@@ -32064,8 +32120,19 @@ async function run() {
     addMatchers();
     setOutput("ruff-version", setupResult.version);
     info(`Successfully installed ruff version ${setupResult.version}`);
-    await runRuff(path14.join(setupResult.ruffDir, "ruff"), args, src);
-    process.exit(0);
+    const { exitCode, output } = await runRuff(
+      path14.join(setupResult.ruffDir, "ruff"),
+      args,
+      src
+    );
+    if (summary2) {
+      const summaryText = formatAnnotationsForSummary(output);
+      await summary.addHeading("Ruff Output").addCodeBlock(summaryText || "No issues found.", "text").write();
+    }
+    if (exitCode !== 0) {
+      setFailed(`Ruff failed with exit code ${exitCode}`);
+    }
+    process.exit(exitCode);
   } catch (err) {
     setFailed(err.message);
   }
@@ -32133,7 +32200,20 @@ function getActionRoot() {
 }
 async function runRuff(ruffExecutablePath, args2, src2) {
   const execArgs = [...splitInput(args2), ...await expandSourceInput(src2)];
-  await exec(ruffExecutablePath, execArgs);
+  let output = "";
+  const options = {
+    ignoreReturnCode: true,
+    listeners: {
+      stderr: (data) => {
+        output += data.toString();
+      },
+      stdout: (data) => {
+        output += data.toString();
+      }
+    }
+  };
+  const exitCode = await exec(ruffExecutablePath, execArgs, options);
+  return { exitCode, output };
 }
 run();
 /*! Bundled license information:

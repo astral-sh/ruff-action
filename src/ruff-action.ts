@@ -6,6 +6,7 @@ import {
   downloadVersion,
   tryGetFromToolCache,
 } from "./download/download-version";
+import { formatAnnotationsForSummary } from "./utils/annotations";
 import {
   args,
   checkSum,
@@ -13,6 +14,7 @@ import {
   githubToken,
   manifestFile,
   src,
+  summary,
   version,
   versionFile as versionFileInput,
 } from "./utils/inputs";
@@ -54,9 +56,24 @@ async function run(): Promise<void> {
     core.setOutput("ruff-version", setupResult.version);
     core.info(`Successfully installed ruff version ${setupResult.version}`);
 
-    await runRuff(path.join(setupResult.ruffDir, "ruff"), args, src);
+    const { exitCode, output } = await runRuff(
+      path.join(setupResult.ruffDir, "ruff"),
+      args,
+      src,
+    );
 
-    process.exit(0);
+    if (summary) {
+      const summaryText = formatAnnotationsForSummary(output);
+      await core.summary
+        .addHeading("Ruff Output")
+        .addCodeBlock(summaryText || "No issues found.", "text")
+        .write();
+    }
+
+    if (exitCode !== 0) {
+      core.setFailed(`Ruff failed with exit code ${exitCode}`);
+    }
+    process.exit(exitCode);
   } catch (err) {
     core.setFailed((err as Error).message);
   }
@@ -141,9 +158,22 @@ async function runRuff(
   ruffExecutablePath: string,
   args: string,
   src: string,
-): Promise<void> {
+): Promise<{ exitCode: number; output: string }> {
   const execArgs = [...splitInput(args), ...(await expandSourceInput(src))];
-  await exec.exec(ruffExecutablePath, execArgs);
+  let output = "";
+  const options: exec.ExecOptions = {
+    ignoreReturnCode: true,
+    listeners: {
+      stderr: (data: Buffer) => {
+        output += data.toString();
+      },
+      stdout: (data: Buffer) => {
+        output += data.toString();
+      },
+    },
+  };
+  const exitCode = await exec.exec(ruffExecutablePath, execArgs, options);
+  return { exitCode, output };
 }
 
 run();

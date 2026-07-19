@@ -1,12 +1,22 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatAnnotationsForSummary } from "../../src/utils/annotations";
+import {
+  AnnotationParser,
+  formatAnnotationsForSummary,
+} from "../../src/utils/annotations";
 
 describe("formatAnnotationsForSummary", () => {
   it("should parse a single annotation line into human-readable format", () => {
-    const input =
+    // Without prefix duplication
+    const input1 =
       "::error file=src/main.py,line=10,col=5,title=Ruff (E501)::Line too long";
-    const expected = "src/main.py:10:5: E501 Line too long";
-    expect(formatAnnotationsForSummary(input)).toBe(expected);
+    const expected1 = "src/main.py:10:5: E501 Line too long";
+    expect(formatAnnotationsForSummary(input1)).toBe(expected1);
+
+    // With prefix duplication and endLine/endColumn parameters
+    const input2 =
+      "::error title=ruff (E501),file=src/main.py,line=10,col=5,endLine=10,endColumn=90::src/main.py:10:5: E501 Line too long";
+    const expected2 = "src/main.py:10:5: E501 Line too long";
+    expect(formatAnnotationsForSummary(input2)).toBe(expected2);
   });
 
   it("should parse multiple annotation lines, preserving order", () => {
@@ -70,5 +80,45 @@ describe("formatAnnotationsForSummary", () => {
   it("should handle empty or whitespace-only input", () => {
     expect(formatAnnotationsForSummary("")).toBe("");
     expect(formatAnnotationsForSummary("   \n  ")).toBe("");
+  });
+});
+
+describe("AnnotationParser", () => {
+  it("should process input incrementally in chunks", () => {
+    const parser = new AnnotationParser();
+    parser.append("::error file=src/main.py,line=10,c");
+    parser.append("ol=5,title=Ruff (E501)::Line too ");
+    parser.append("long\n::warning file=src/utils.py,line=2");
+    parser.append("0,col=1,title=Ruff (F401)::Unused import\n");
+    parser.flush();
+
+    const expected = [
+      "src/main.py:10:5: E501 Line too long",
+      "src/utils.py:20:1: F401 Unused import",
+    ].join("\n");
+    expect(parser.getSummary()).toBe(expected);
+  });
+
+  it("should truncate and report accurate truncated character count when exceeding max limit", () => {
+    const parser = new AnnotationParser();
+    // Feed small lines, then a huge chunk to exceed 100k limit.
+    const chunk1 = "Some initial line\n";
+    const chunk2 = `${"a".repeat(110000)}\n`;
+    const chunk3 = "Another line after truncation";
+
+    parser.append(chunk1);
+    parser.append(chunk2);
+    parser.append(chunk3);
+    parser.flush();
+
+    const summary = parser.getSummary();
+    expect(summary.length).toBeLessThan(110000);
+    expect(summary).toContain("... (truncated, ");
+
+    // Check that the suffix lists correct count
+    const match = summary.match(/\(truncated, (\d+) more characters\)/);
+    expect(match).not.toBeNull();
+    const truncatedCount = Number(match?.[1]);
+    expect(truncatedCount).toBeGreaterThan(0);
   });
 });

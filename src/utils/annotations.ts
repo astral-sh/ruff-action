@@ -128,9 +128,3 @@ export class AnnotationParser {
   }
 }
 
-export function formatAnnotationsForSummary(raw: string): string {
-  const parser = new AnnotationParser();
-  parser.append(raw);
-  parser.flush();
-  return parser.getSummary();
-}

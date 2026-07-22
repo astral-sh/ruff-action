@@ -14668,7 +14668,7 @@ var require_util4 = __commonJS({
     var { getEncoding } = require_encoding();
     var { serializeAMimeType, parseMIMEType } = require_data_url();
     var { types: types2 } = require("node:util");
-    var { StringDecoder } = require("string_decoder");
+    var { StringDecoder: StringDecoder2 } = require("string_decoder");
     var { btoa } = require("node:buffer");
     var staticPropertyDescriptors = {
       enumerable: true,
@@ -14759,7 +14759,7 @@ var require_util4 = __commonJS({
             dataURL += serializeAMimeType(parsed);
           }
           dataURL += ";base64,";
-          const decoder = new StringDecoder("latin1");
+          const decoder = new StringDecoder2("latin1");
           for (const chunk of bytes) {
             dataURL += btoa(decoder.write(chunk));
           }
@@ -14788,7 +14788,7 @@ var require_util4 = __commonJS({
         }
         case "BinaryString": {
           let binaryString = "";
-          const decoder = new StringDecoder("latin1");
+          const decoder = new StringDecoder2("latin1");
           for (const chunk of bytes) {
             binaryString += decoder.write(chunk);
           }
@@ -22317,6 +22317,7 @@ var require_pep440 = __commonJS({
 
 // src/ruff-action.ts
 var path14 = __toESM(require("node:path"), 1);
+var import_node_string_decoder = require("node:string_decoder");
 
 // node_modules/@actions/core/lib/command.js
 var os = __toESM(require("os"), 1);
@@ -28314,11 +28315,31 @@ function getExtension(platform2) {
 
 // src/utils/annotations.ts
 var COMMAND_RE = /^::(?:error|warning)\s+(.*?)::(.*)$/;
-function formatAnnotationsForSummary(raw) {
-  const lines = raw.split(/\r?\n/);
-  const formatted = [];
-  let unmatchedCommandLines = 0;
-  for (const line of lines) {
+var MAX_SUMMARY_CHARS = 1e5;
+var AnnotationParser = class {
+  buffer = "";
+  formatted = [];
+  unmatchedCommandLines = 0;
+  rawChunks = [];
+  rawLength = 0;
+  rawTruncatedChars = 0;
+  formattedLength = 0;
+  formattedTruncatedChars = 0;
+  append(chunk) {
+    this.buffer += chunk;
+    const lines = this.buffer.split(/\r?\n/);
+    this.buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      this.processLine(line);
+    }
+  }
+  flush() {
+    if (this.buffer) {
+      this.processLine(this.buffer);
+      this.buffer = "";
+    }
+  }
+  processLine(line) {
     const match3 = line.match(COMMAND_RE);
     if (match3) {
       const [, paramStr, message] = match3;
@@ -28342,29 +28363,68 @@ function formatAnnotationsForSummary(raw) {
           code = `${codeMatch[1]} `;
         }
       }
+      let cleanedMessage = message;
       if (file && lineNo) {
-        const colStr = col ? `:${col}` : "";
-        formatted.push(`${file}:${lineNo}${colStr}: ${code}${message}`);
-      } else {
-        formatted.push(`${code}${message}`);
+        const prefixWithCode = `${file}:${lineNo}${col ? `:${col}` : ""}: ${code}`;
+        const prefixWithoutCode = `${file}:${lineNo}${col ? `:${col}` : ""}: `;
+        if (cleanedMessage.startsWith(prefixWithCode)) {
+          cleanedMessage = cleanedMessage.slice(prefixWithCode.length);
+        } else if (cleanedMessage.startsWith(prefixWithoutCode)) {
+          cleanedMessage = cleanedMessage.slice(prefixWithoutCode.length);
+        }
       }
+      const formattedLine = file && lineNo ? `${file}:${lineNo}${col ? `:${col}` : ""}: ${code}${cleanedMessage}` : `${code}${cleanedMessage}`;
+      this.addFormatted(formattedLine);
     } else if (line.startsWith("::")) {
-      unmatchedCommandLines++;
+      this.unmatchedCommandLines++;
+      this.addRaw(line);
     } else if (line.trim()) {
-      formatted.push(line);
+      this.addFormatted(line);
+    } else {
+      this.addRaw(line);
     }
   }
-  if (unmatchedCommandLines > 0 && formatted.length === 0) {
-    return raw;
+  addFormatted(line) {
+    if (this.formattedLength < MAX_SUMMARY_CHARS) {
+      this.formatted.push(line);
+      this.formattedLength += line.length + (this.formatted.length > 1 ? 1 : 0);
+    } else {
+      this.formattedTruncatedChars += line.length + 1;
+    }
+    this.addRaw(line);
   }
-  return truncate(formatted.join("\n"), 1e5);
-}
-function truncate(text, maxChars) {
-  if (text.length <= maxChars) return text;
-  return `${text.slice(0, maxChars)}
+  addRaw(line) {
+    if (this.rawLength < MAX_SUMMARY_CHARS) {
+      this.rawChunks.push(line);
+      this.rawLength += line.length + (this.rawChunks.length > 1 ? 1 : 0);
+    } else {
+      this.rawTruncatedChars += line.length + 1;
+    }
+  }
+  getSummary() {
+    if (this.unmatchedCommandLines > 0 && this.formatted.length === 0) {
+      return this.truncate(
+        this.rawChunks.join("\n"),
+        MAX_SUMMARY_CHARS,
+        this.rawTruncatedChars
+      );
+    }
+    return this.truncate(
+      this.formatted.join("\n"),
+      MAX_SUMMARY_CHARS,
+      this.formattedTruncatedChars
+    );
+  }
+  truncate(text, maxChars, truncatedCount) {
+    const totalTruncated = Math.max(0, text.length - maxChars) + truncatedCount;
+    if (totalTruncated === 0) {
+      return text;
+    }
+    return `${text.slice(0, maxChars)}
 
-... (truncated, ${text.length - maxChars} more characters)`;
-}
+... (truncated, ${totalTruncated} more characters)`;
+  }
+};
 
 // src/utils/inputs.ts
 var version = getInput("version");
@@ -32120,14 +32180,14 @@ async function run() {
     addMatchers();
     setOutput("ruff-version", setupResult.version);
     info(`Successfully installed ruff version ${setupResult.version}`);
-    const { exitCode, output } = await runRuff(
+    const { exitCode, summaryText } = await runRuff(
       path14.join(setupResult.ruffDir, "ruff"),
       args,
       src
     );
     if (summary2) {
-      const summaryText = formatAnnotationsForSummary(output);
-      await summary.addHeading("Ruff Output").addCodeBlock(summaryText || "No issues found.", "text").write();
+      const sanitizedSummaryText = summaryText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      await summary.addHeading("Ruff Output").addCodeBlock(sanitizedSummaryText || "No issues found.", "text").write();
     }
     if (exitCode !== 0) {
       setFailed(`Ruff failed with exit code ${exitCode}`);
@@ -32200,20 +32260,27 @@ function getActionRoot() {
 }
 async function runRuff(ruffExecutablePath, args2, src2) {
   const execArgs = [...splitInput(args2), ...await expandSourceInput(src2)];
-  let output = "";
+  const parser = summary2 ? new AnnotationParser() : void 0;
+  const stdoutDecoder = new import_node_string_decoder.StringDecoder("utf8");
+  const stderrDecoder = new import_node_string_decoder.StringDecoder("utf8");
   const options = {
     ignoreReturnCode: true,
     listeners: {
       stderr: (data) => {
-        output += data.toString();
+        parser?.append(stderrDecoder.write(data));
       },
       stdout: (data) => {
-        output += data.toString();
+        parser?.append(stdoutDecoder.write(data));
       }
     }
   };
   const exitCode = await exec(ruffExecutablePath, execArgs, options);
-  return { exitCode, output };
+  if (parser) {
+    parser.append(stdoutDecoder.end());
+    parser.append(stderrDecoder.end());
+    parser.flush();
+  }
+  return { exitCode, summaryText: parser?.getSummary() ?? "" };
 }
 run();
 /*! Bundled license information:

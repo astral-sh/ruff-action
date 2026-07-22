@@ -1,18 +1,22 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  AnnotationParser,
-  formatAnnotationsForSummary,
-} from "../../src/utils/annotations";
+import { AnnotationParser } from "../../src/utils/annotations";
+
+function formatAnnotationsForSummary(raw: string): string {
+  const parser = new AnnotationParser();
+  parser.append(raw);
+  parser.flush();
+  return parser.getSummary();
+}
 
 describe("formatAnnotationsForSummary", () => {
   it("should parse a single annotation line into human-readable format", () => {
-    // Without prefix duplication
+    // Synthetic/standard workflow annotation line without message prefix duplication
     const input1 =
       "::error file=src/main.py,line=10,col=5,title=Ruff (E501)::Line too long";
     const expected1 = "src/main.py:10:5: E501 Line too long";
     expect(formatAnnotationsForSummary(input1)).toBe(expected1);
 
-    // With prefix duplication and endLine/endColumn parameters
+    // Verbatim ruff --output-format=github line (includes prefix duplication & endLine/endColumn)
     const input2 =
       "::error title=ruff (E501),file=src/main.py,line=10,col=5,endLine=10,endColumn=90::src/main.py:10:5: E501 Line too long";
     const expected2 = "src/main.py:10:5: E501 Line too long";

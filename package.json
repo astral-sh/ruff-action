@@ -5,6 +5,9 @@
   "type": "module",
   "description": "A GitHub Action to run Ruff, an extremely fast Python linter and code formatter.",
   "main": "dist/ruff-action/index.cjs",
+  "engines": {
+    "npm": ">=11.10.0"
+  },
   "devEngines": {
     "packageManager": {
       "name": "npm",

@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as semver from "semver";
 
@@ -450,7 +451,7 @@ describe("download-version", () => {
 
       expect(mockExtractTar).toHaveBeenCalledWith("/tmp/downloaded");
       expect(mockCacheDir).toHaveBeenCalledWith(
-        "/tmp/extracted/ruff-x86_64-unknown-linux-gnu",
+        path.join("/tmp/extracted", "ruff-x86_64-unknown-linux-gnu"),
         "ruff",
         "0.15.8",
         "x86_64",

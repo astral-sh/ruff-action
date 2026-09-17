@@ -37,6 +37,7 @@ anything `ruff` can (ex, fix).
 | `src`           | Source path(s) to run `ruff` on. Supports glob patterns.                                                                                   | [github.workspace] |
 | `checksum`      | The sha256 checksum of the downloaded artifact.                                                                                            | None               |
 | `github-token`  | The GitHub token to use when downloading Ruff release artifacts from GitHub.                                                               | `GITHUB_TOKEN`     |
+| `summary`       | Write the results of Ruff to the GitHub Actions step summary.                                                                              | `true`             |
 
 By default, Ruff version metadata is resolved from the
 [`astral-sh/versions` Ruff manifest](https://github.com/astral-sh/versions/blob/main/v1/ruff.ndjson).

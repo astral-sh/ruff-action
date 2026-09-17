@@ -11,6 +11,7 @@ export const downloadFromAstralMirror = getBooleanInput(
   "download-from-astral-mirror",
   true,
 );
+export const summary = getBooleanInput("summary", true);
 
 function getBooleanInput(name: string, defaultValue: boolean): boolean {
   if (core.getInput(name) === "") {

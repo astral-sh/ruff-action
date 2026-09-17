@@ -17,6 +17,7 @@ const {
 const { findPyprojectToml } = await import("../../src/utils/pyproject-finder");
 
 let tempDir: string | undefined;
+const symlinkTest = process.platform === "win32" ? it.skip : it;
 
 afterEach(async () => {
   if (tempDir !== undefined) {
@@ -177,7 +178,7 @@ describe("expandSourceInput", () => {
     ]);
   });
 
-  it("does not traverse symlinked directories", async () => {
+  symlinkTest("does not traverse symlinked directories", async () => {
     const projectDir = await createTempProject();
     const externalDir = path.join(projectDir, "external");
     const symlinkPath = path.join(projectDir, "src", "linked");
@@ -368,7 +369,7 @@ describe("getSourceBasePath", () => {
 
   it("does not treat brace expansion as glob syntax", async () => {
     await expect(getSourceBasePath("src/{a,b}/*.py")).resolves.toBe(
-      "src/{a,b}",
+      path.join("src", "{a,b}"),
     );
   });
 });

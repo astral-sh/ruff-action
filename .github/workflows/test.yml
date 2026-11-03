@@ -49,6 +49,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, macos-15, windows-latest]
     steps:
+      - if: runner.os == 'macOS'
+        uses: astral-sh/github-actions/demudhra@7aa50a3def9f5428c532b0ae972d1e5b357de5a5 # 2026.11.03.0
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -64,6 +66,8 @@ jobs:
         ruff-version: ["0.1.7", "0.1.8", "0.4.7", "0.4.10", "0.7", "0.7.x", ">=0.7.0"]
         os: [ ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-15, windows-latest ]
     steps:
+      - if: runner.os == 'macOS'
+        uses: astral-sh/github-actions/demudhra@7aa50a3def9f5428c532b0ae972d1e5b357de5a5 # 2026.11.03.0
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -349,6 +353,8 @@ jobs:
           - os: macos-latest
             checksum: "af9583bff12afbca5d5670334e0187dd60c4d91bc71317d1b2dde70cb1200ba9"
     steps:
+      - if: runner.os == 'macOS'
+        uses: astral-sh/github-actions/demudhra@7aa50a3def9f5428c532b0ae972d1e5b357de5a5 # 2026.11.03.0
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false

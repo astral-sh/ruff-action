@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as semver from "semver";
@@ -6,6 +7,7 @@ import {
   downloadVersion,
   tryGetFromToolCache,
 } from "./download/download-version";
+import { AnnotationParser } from "./utils/annotations";
 import {
   args,
   checkSum,
@@ -13,6 +15,7 @@ import {
   githubToken,
   manifestFile,
   src,
+  summary,
   version,
   versionFile as versionFileInput,
 } from "./utils/inputs";
@@ -54,9 +57,28 @@ async function run(): Promise<void> {
     core.setOutput("ruff-version", setupResult.version);
     core.info(`Successfully installed ruff version ${setupResult.version}`);
 
-    await runRuff(path.join(setupResult.ruffDir, "ruff"), args, src);
+    const { exitCode, summaryText } = await runRuff(
+      path.join(setupResult.ruffDir, "ruff"),
+      args,
+      src,
+    );
 
-    process.exit(0);
+    if (summary) {
+      const sanitizedSummaryText = summaryText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      await core.summary
+        .addHeading("Ruff Output")
+        .addCodeBlock(sanitizedSummaryText || "No issues found.", "text")
+        .write();
+    }
+
+    if (exitCode !== 0) {
+      core.setFailed(`Ruff failed with exit code ${exitCode}`);
+    }
+    process.exit(exitCode);
   } catch (err) {
     core.setFailed((err as Error).message);
   }
@@ -141,9 +163,29 @@ async function runRuff(
   ruffExecutablePath: string,
   args: string,
   src: string,
-): Promise<void> {
+): Promise<{ exitCode: number; summaryText: string }> {
   const execArgs = [...splitInput(args), ...(await expandSourceInput(src))];
-  await exec.exec(ruffExecutablePath, execArgs);
+  const parser = summary ? new AnnotationParser() : undefined;
+  const stdoutDecoder = new StringDecoder("utf8");
+  const stderrDecoder = new StringDecoder("utf8");
+  const options: exec.ExecOptions = {
+    ignoreReturnCode: true,
+    listeners: {
+      stderr: (data: Buffer) => {
+        parser?.append(stderrDecoder.write(data));
+      },
+      stdout: (data: Buffer) => {
+        parser?.append(stdoutDecoder.write(data));
+      },
+    },
+  };
+  const exitCode = await exec.exec(ruffExecutablePath, execArgs, options);
+  if (parser) {
+    parser.append(stdoutDecoder.end());
+    parser.append(stderrDecoder.end());
+    parser.flush();
+  }
+  return { exitCode, summaryText: parser?.getSummary() ?? "" };
 }
 
 run();

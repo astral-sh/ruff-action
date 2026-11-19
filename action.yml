@@ -32,6 +32,10 @@ inputs:
       "Used for authenticated downloads of Ruff release artifacts from GitHub."
     required: false
     default: ${{ github.token }}
+  summary:
+    description: "Add the output of Ruff to the GitHub Actions step summary."
+    required: false
+    default: "true"
 outputs:
   ruff-version:
     description: "The installed ruff version. Useful when using latest."
